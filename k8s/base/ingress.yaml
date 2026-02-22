@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grocery-ingress
+  namespace: grocery
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: grocery.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ui-angular
+                port: {number: 80}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port: {number: 8080}

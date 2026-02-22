@@ -1,0 +1,12 @@
+resources:
+  - platform.yaml
+  - postgres.yaml
+  - identity-service.yaml
+  - catalog-service.yaml
+  - inventory-service.yaml
+  - cart-service.yaml
+  - order-service.yaml
+  - payment-service.yaml
+  - gateway.yaml
+  - ui-angular.yaml
+  - ingress.yaml

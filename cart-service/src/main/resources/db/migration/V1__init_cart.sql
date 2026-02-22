@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS cart_items (
+  id BIGSERIAL PRIMARY KEY,
+  user_email VARCHAR(255) NOT NULL,
+  sku VARCHAR(128) NOT NULL,
+  item_name VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL
+);

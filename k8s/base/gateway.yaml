@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: grocery
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: gateway}
+  template:
+    metadata:
+      labels: {app: gateway}
+    spec:
+      containers:
+        - name: app
+          image: your-acr.azurecr.io/gateway:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_CORS_ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef: {name: grocery-config, key: APP_CORS_ALLOWED_ORIGINS}            - name: IDENTITY_URI
+              value: http://identity-service:8081
+            - name: CATALOG_URI
+              value: http://catalog-service:8082
+            - name: INVENTORY_URI
+              value: http://inventory-service:8083
+            - name: CART_URI
+              value: http://cart-service:8084
+            - name: ORDER_URI
+              value: http://order-service:8085
+            - name: PAYMENT_URI
+              value: http://payment-service:8086
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: {name: grocery-secrets, key: JWT_SECRET}
+          readinessProbe:
+            httpGet: {path: /actuator/health, port: 8080}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /actuator/health, port: 8080}
+            initialDelaySeconds: 40
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: grocery
+spec:
+  selector: {app: gateway}
+  ports:
+    - port: 8080
+      targetPort: 8080

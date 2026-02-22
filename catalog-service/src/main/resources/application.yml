@@ -1,0 +1,21 @@
+server:
+  port: 8082
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/catalog_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+app:
+  sample-excel-path: ${SAMPLE_EXCEL_PATH:../samples/catalog-upload.xlsx}
+  image-local-path: ${IMAGE_LOCAL_PATH:./data/images}
+  inventory-base-url: ${INVENTORY_BASE_URL:http://inventory-service:8083}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

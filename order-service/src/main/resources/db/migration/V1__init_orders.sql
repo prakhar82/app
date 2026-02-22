@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGSERIAL PRIMARY KEY,
+  order_ref VARCHAR(128) NOT NULL UNIQUE,
+  user_email VARCHAR(255) NOT NULL,
+  payment_method VARCHAR(32) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  total_amount NUMERIC(12,2) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS order_items (
+  id BIGSERIAL PRIMARY KEY,
+  order_id BIGINT NOT NULL REFERENCES orders(id),
+  sku VARCHAR(128) NOT NULL,
+  item_name VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL,
+  unit_price NUMERIC(12,2) NOT NULL
+);

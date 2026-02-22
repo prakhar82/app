@@ -1,0 +1,61 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - git
+
+write_files:
+  - path: /opt/grocery/deploy.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      APP_DIR=/opt/grocery/app
+      REPO_URL="${REPO_URL:-https://github.com/REPLACE_ME/REPLACE_ME.git}"
+      BRANCH="${BRANCH:-main}"
+
+      if ! command -v docker >/dev/null 2>&1; then
+        curl -fsSL https://get.docker.com | sh
+      fi
+
+      if ! docker compose version >/dev/null 2>&1; then
+        apt-get update
+        apt-get install -y docker-compose-plugin
+      fi
+
+      mkdir -p /opt/grocery
+      if [ ! -d "$APP_DIR/.git" ]; then
+        git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+      else
+        cd "$APP_DIR"
+        git fetch --all
+        git checkout "$BRANCH"
+        git pull --ff-only
+      fi
+
+      cd "$APP_DIR"
+
+      if [ ! -f .env ] && [ -f .env.example ]; then
+        cp .env.example .env
+      fi
+
+      if [ ! -f .env ]; then
+        cat > .env <<EOF
+      AUTH_MODE=DEV
+      JWT_SECRET=replace-with-very-strong-32-char-secret-123456
+      APP_CORS_ALLOWED_ORIGINS=http://localhost,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:8080
+      EOF
+      fi
+
+      grep -q '^AUTH_MODE=' .env || echo "AUTH_MODE=DEV" >> .env
+      grep -q '^JWT_SECRET=' .env || echo "JWT_SECRET=replace-with-very-strong-32-char-secret-123456" >> .env
+
+      docker compose down || true
+      docker compose up -d --build
+
+runcmd:
+  - [ bash, -lc, "REPO_URL='https://github.com/REPLACE_ME/REPLACE_ME.git' BRANCH='main' /opt/grocery/deploy.sh > /var/log/grocery-deploy.log 2>&1" ]

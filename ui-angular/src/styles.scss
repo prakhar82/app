@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$grocery-primary: mat.define-palette(mat.$teal-palette, 700, 500, 900);
+$grocery-accent: mat.define-palette(mat.$amber-palette, 600, 400, 800);
+$grocery-warn: mat.define-palette(mat.$red-palette, 600);
+
+$grocery-theme: mat.define-light-theme((
+  color: (
+    primary: $grocery-primary,
+    accent: $grocery-accent,
+    warn: $grocery-warn
+  ),
+  typography: mat.define-typography-config(
+    $font-family: '"Poppins", "Segoe UI", sans-serif'
+  )
+));
+
+@include mat.all-component-themes($grocery-theme);
+
+:root {
+  --brand-primary: #0f766e;
+  --brand-accent: #f59e0b;
+  --surface: #ffffff;
+  --surface-soft: #f6fbf9;
+  --ink: #1f342d;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 15% 20%, #dff8ec 0%, transparent 38%),
+    radial-gradient(circle at 85% 12%, #fff1d4 0%, transparent 40%),
+    linear-gradient(140deg, #f9fcfa, #eef7f3);
+}
+
+.mat-mdc-card {
+  box-shadow: 0 12px 30px rgba(20, 73, 62, 0.08) !important;
+}

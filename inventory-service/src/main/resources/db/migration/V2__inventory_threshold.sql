@@ -1,0 +1,2 @@
+ALTER TABLE inventory
+ADD COLUMN IF NOT EXISTS reorder_threshold INT NOT NULL DEFAULT 20;

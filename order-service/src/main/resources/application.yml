@@ -1,0 +1,21 @@
+server:
+  port: 8085
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+app:
+  inventory-base-url: ${INVENTORY_BASE_URL:http://inventory-service:8083}
+  payment-base-url: ${PAYMENT_BASE_URL:http://payment-service:8086}
+  identity-base-url: ${IDENTITY_BASE_URL:http://identity-service:8081}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
