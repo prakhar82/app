@@ -1,3 +1,4 @@
 package com.grocery.payment.dto;
 
-public record PaymentIntentResponse(String orderRef, String status, String providerRef) {}
+public record PaymentIntentResponse(String orderRef, String status, String providerRef, String redirectUrl) {
+}

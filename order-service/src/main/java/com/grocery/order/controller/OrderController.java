@@ -36,6 +36,25 @@ public class OrderController {
         return checkoutService.checkout(request, userEmail);
     }
 
+    @PostMapping("/{orderRef}/confirm-payment")
+    public CheckoutResponse confirmPayment(@PathVariable("orderRef") String orderRef,
+                                           @RequestParam("providerRef") String providerRef,
+                                           @RequestHeader(name = "X-User-Email", required = false) String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            throw new DomainException("UNAUTHORIZED", "Missing authenticated user");
+        }
+        return checkoutService.confirmPayment(orderRef, providerRef, userEmail);
+    }
+
+    @PostMapping("/{orderRef}/cancel-payment")
+    public CheckoutResponse cancelPayment(@PathVariable("orderRef") String orderRef,
+                                          @RequestHeader(name = "X-User-Email", required = false) String userEmail) {
+        if (userEmail == null || userEmail.isBlank()) {
+            throw new DomainException("UNAUTHORIZED", "Missing authenticated user");
+        }
+        return checkoutService.cancelPayment(orderRef, userEmail);
+    }
+
     @GetMapping("/me")
     public List<OrderResponse> myOrders(@RequestHeader(name = "X-User-Email", required = false) String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {

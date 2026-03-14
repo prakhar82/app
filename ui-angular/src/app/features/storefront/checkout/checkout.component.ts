@@ -8,7 +8,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatRadioModule} from '@angular/material/radio';
 import {MatSelectModule} from '@angular/material/select';
 import {MatCheckboxModule} from '@angular/material/checkbox';
-import {Router, RouterLink} from '@angular/router';
+import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {Store} from '@ngrx/store';
 import {take} from 'rxjs/operators';
 import {forkJoin} from 'rxjs';
@@ -63,7 +63,7 @@ import {PostcodeApiService} from '../../../core/api/postcode-api.service';
           <mat-radio-button value="COD">Cash on Delivery</mat-radio-button>
           <mat-radio-button value="IDEAL" class="ml">Pay with iDEAL</mat-radio-button>
         </mat-radio-group>
-        <p class="hint" *ngIf="paymentMethod.value==='IDEAL'">Use iDEAL for the final order payment.</p>
+        <p class="hint" *ngIf="paymentMethod.value==='IDEAL'">You will be redirected to Stripe to complete iDEAL payment.</p>
       </mat-card>
 
       <mat-card class="right">
@@ -78,8 +78,8 @@ import {PostcodeApiService} from '../../../core/api/postcode-api.service';
           <strong>{{totalPrice() | currency:'EUR'}}</strong>
         </div>
 
-        <button mat-raised-button color="primary" class="full" (click)="placeOrder()" [disabled]="items.length===0 || placing">
-          {{ placing ? 'Placing Order...' : 'Place Order' }}
+        <button mat-raised-button color="primary" class="full" (click)="placeOrder()" [disabled]="items.length===0 || placing || confirmingPayment">
+          {{ placing ? 'Placing Order...' : (confirmingPayment ? 'Confirming Payment...' : 'Place Order') }}
         </button>
         <button mat-stroked-button class="full mt" routerLink="/app/cart">Back to Cart</button>
 
@@ -116,6 +116,7 @@ export class CheckoutComponent {
   private postcodeApi = inject(PostcodeApiService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   paymentMethod = this.fb.control<'COD' | 'IDEAL'>('COD', [Validators.required]);
   addressMode = this.fb.control<'SAVED' | 'NEW'>('SAVED', [Validators.required]);
@@ -136,6 +137,7 @@ export class CheckoutComponent {
   priceBySku: Record<string, number> = {};
   loading = true;
   placing = false;
+  confirmingPayment = false;
   error = '';
   success = '';
   postcodeError = '';
@@ -162,6 +164,7 @@ export class CheckoutComponent {
             this.addressMode.setValue('NEW');
           }
           this.loading = false;
+          this.handleStripeReturn();
         },
         error: () => {
           this.error = 'Unable to load checkout data.';
@@ -169,6 +172,42 @@ export class CheckoutComponent {
         }
       });
     });
+  }
+
+  private handleStripeReturn(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const result = params.get('result');
+    const orderRef = params.get('orderRef');
+    const providerRef = params.get('sessionId');
+    if (!result || !orderRef) {
+      return;
+    }
+
+    this.confirmingPayment = true;
+    if (result === 'success' && providerRef) {
+      this.orderApi.confirmPayment(orderRef, providerRef).subscribe({
+        next: (res) => this.clearCartAfterPayment(`Order ${res.orderRef} placed successfully.`),
+        error: (err) => {
+          this.confirmingPayment = false;
+          this.error = err?.error?.message || 'Payment could not be confirmed.';
+        }
+      });
+      return;
+    }
+
+    if (result === 'cancelled') {
+      this.orderApi.cancelPayment(orderRef).subscribe({
+        next: () => {
+          this.confirmingPayment = false;
+          this.error = 'Payment was cancelled.';
+          this.router.navigate([], {queryParams: {}, replaceUrl: true});
+        },
+        error: (err) => {
+          this.confirmingPayment = false;
+          this.error = err?.error?.message || 'Payment cancellation could not be processed.';
+        }
+      });
+    }
   }
 
   lineTotal(item: CartItem): number {
@@ -239,23 +278,40 @@ export class CheckoutComponent {
 
     this.orderApi.checkout(payload).subscribe({
       next: (res) => {
-        const deletes = this.items.map(item => this.cartApi.delete(this.email, item.sku));
-        forkJoin(deletes).subscribe({
-          next: () => {
-            this.success = `Order ${res.orderRef} placed successfully.`;
-            this.items = [];
-            this.placing = false;
-            setTimeout(() => this.router.navigateByUrl('/app/orders'), 700);
-          },
-          error: () => {
-            this.placing = false;
-            this.error = `Order ${res.orderRef} placed, but cart cleanup failed.`;
-          }
-        });
+        this.placing = false;
+        if (res.redirectUrl) {
+          window.location.href = res.redirectUrl;
+          return;
+        }
+        this.clearCartAfterPayment(`Order ${res.orderRef} placed successfully.`);
       },
       error: (err) => {
         this.placing = false;
         this.error = err?.error?.message || 'Unable to place order.';
+      }
+    });
+  }
+
+  private clearCartAfterPayment(successMessage: string): void {
+    const deletes = this.items.map(item => this.cartApi.delete(this.email, item.sku));
+    if (deletes.length === 0) {
+      this.success = successMessage;
+      this.confirmingPayment = false;
+      this.router.navigateByUrl('/app/orders');
+      return;
+    }
+    forkJoin(deletes).subscribe({
+      next: () => {
+        this.success = successMessage;
+        this.items = [];
+        this.placing = false;
+        this.confirmingPayment = false;
+        this.router.navigateByUrl('/app/orders');
+      },
+      error: () => {
+        this.placing = false;
+        this.confirmingPayment = false;
+        this.error = 'Order payment succeeded, but cart cleanup failed.';
       }
     });
   }

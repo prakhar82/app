@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 @Component
 public class PaymentClient {
@@ -17,9 +16,21 @@ public class PaymentClient {
         this.paymentBase = paymentBase;
     }
 
-    public String pay(String orderRef, BigDecimal amount, String method) {
-        var payload = Map.of("orderRef", orderRef, "amount", amount, "method", method);
-        var response = restTemplate.postForEntity(paymentBase + "/payments/intent", payload, Map.class);
-        return (String) response.getBody().get("status");
+    public PaymentIntent pay(String orderRef, BigDecimal amount, String method) {
+        var payload = new PaymentIntentRequest(orderRef, amount, method);
+        return restTemplate.postForObject(paymentBase + "/payments/intent", payload, PaymentIntent.class);
+    }
+
+    public PaymentStatus verify(String providerRef) {
+        return restTemplate.getForObject(paymentBase + "/payments/session/" + providerRef, PaymentStatus.class);
+    }
+
+    public record PaymentIntent(String orderRef, String status, String providerRef, String redirectUrl) {
+    }
+
+    public record PaymentIntentRequest(String orderRef, BigDecimal amount, String method) {
+    }
+
+    public record PaymentStatus(String providerRef, String status, String paymentStatus, boolean paid) {
     }
 }

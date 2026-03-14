@@ -4,6 +4,7 @@ import com.grocery.payment.dto.PaymentIntentRequest;
 import com.grocery.payment.dto.PaymentIntentResponse;
 import com.grocery.payment.dto.PaymentAccountSettingsRequest;
 import com.grocery.payment.dto.PaymentAccountSettingsResponse;
+import com.grocery.payment.dto.PaymentSessionStatusResponse;
 import com.grocery.payment.service.PaymentAccountSettingsService;
 import com.grocery.payment.service.PaymentService;
 import jakarta.validation.Valid;
@@ -30,6 +31,11 @@ public class PaymentController {
     @PostMapping("/webhook")
     public String webhook(@RequestBody Map<String, String> payload) {
         return paymentService.webhook(payload.get("orderRef"), payload.get("status"));
+    }
+
+    @GetMapping("/session/{providerRef}")
+    public PaymentSessionStatusResponse getSessionStatus(@PathVariable("providerRef") String providerRef) {
+        return paymentService.getSessionStatus(providerRef);
     }
 
     @GetMapping("/admin/account")

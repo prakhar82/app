@@ -8,9 +8,9 @@ import com.grocery.order.domain.OrderEntity;
 import com.grocery.order.domain.OrderItemEntity;
 import com.grocery.order.dto.CheckoutRequest;
 import com.grocery.order.dto.CheckoutResponse;
+import com.grocery.common.api.DomainException;
 import com.grocery.order.repo.OrderDeliveryAddressRepository;
 import com.grocery.order.repo.OrderRepository;
-import com.grocery.common.api.DomainException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,19 +67,54 @@ public class CheckoutService {
 
         if ("COD".equalsIgnoreCase(request.paymentMethod())) {
             order.setStatus("COD_PENDING");
-            return new CheckoutResponse(orderRef, order.getStatus(), "NOT_REQUIRED");
+            return new CheckoutResponse(orderRef, order.getStatus(), "NOT_REQUIRED", null);
         }
 
-        String paymentStatus = paymentClient.pay(orderRef, total, request.paymentMethod());
-        if ("SUCCESS".equalsIgnoreCase(paymentStatus)) {
-            inventoryClient.commit(orderRef);
-            order.setStatus("CONFIRMED");
-            return new CheckoutResponse(orderRef, order.getStatus(), "SUCCESS");
+        var paymentIntent = paymentClient.pay(orderRef, total, request.paymentMethod());
+        if ("REQUIRES_ACTION".equalsIgnoreCase(paymentIntent.status())) {
+            order.setStatus("PENDING_PAYMENT");
+            return new CheckoutResponse(orderRef, order.getStatus(), paymentIntent.status(), paymentIntent.redirectUrl());
         }
 
         inventoryClient.release(orderRef);
         order.setStatus("PAYMENT_FAILED");
-        return new CheckoutResponse(orderRef, order.getStatus(), paymentStatus);
+        return new CheckoutResponse(orderRef, order.getStatus(), paymentIntent.status(), null);
+    }
+
+    @Transactional
+    public CheckoutResponse confirmPayment(String orderRef, String providerRef, String authenticatedEmail) {
+        OrderEntity order = orderRepository.findByOrderRef(orderRef)
+                .orElseThrow(() -> new DomainException("ORDER_NOT_FOUND", "Order not found"));
+        if (!order.getUserEmail().equalsIgnoreCase(authenticatedEmail)) {
+            throw new DomainException("UNAUTHORIZED", "Order does not belong to authenticated user");
+        }
+        if ("CONFIRMED".equalsIgnoreCase(order.getStatus())) {
+            return new CheckoutResponse(orderRef, order.getStatus(), "SUCCESS", null);
+        }
+
+        var paymentStatus = paymentClient.verify(providerRef);
+        if (!paymentStatus.paid()) {
+            throw new DomainException("PAYMENT_NOT_COMPLETED", "Payment is not completed yet");
+        }
+
+        inventoryClient.commit(orderRef);
+        order.setStatus("CONFIRMED");
+        return new CheckoutResponse(orderRef, order.getStatus(), paymentStatus.paymentStatus(), null);
+    }
+
+    @Transactional
+    public CheckoutResponse cancelPayment(String orderRef, String authenticatedEmail) {
+        OrderEntity order = orderRepository.findByOrderRef(orderRef)
+                .orElseThrow(() -> new DomainException("ORDER_NOT_FOUND", "Order not found"));
+        if (!order.getUserEmail().equalsIgnoreCase(authenticatedEmail)) {
+            throw new DomainException("UNAUTHORIZED", "Order does not belong to authenticated user");
+        }
+        if ("CONFIRMED".equalsIgnoreCase(order.getStatus())) {
+            return new CheckoutResponse(orderRef, order.getStatus(), "SUCCESS", null);
+        }
+        inventoryClient.release(orderRef);
+        order.setStatus("PAYMENT_CANCELLED");
+        return new CheckoutResponse(orderRef, order.getStatus(), "CANCELLED", null);
     }
 
     private DeliveryAddressSnapshot resolveAddress(String authenticatedEmail, CheckoutRequest request) {

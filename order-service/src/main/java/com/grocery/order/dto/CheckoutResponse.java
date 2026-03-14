@@ -1,4 +1,4 @@
 package com.grocery.order.dto;
 
-public record CheckoutResponse(String orderRef, String status, String paymentStatus) {
+public record CheckoutResponse(String orderRef, String status, String paymentStatus, String redirectUrl) {
 }

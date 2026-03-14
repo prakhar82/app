@@ -30,6 +30,7 @@ export interface CheckoutResponse {
   orderRef: string;
   status: string;
   paymentStatus: string;
+  redirectUrl?: string | null;
 }
 
 export interface OrderItem {
@@ -62,6 +63,14 @@ export class OrderApiService {
 
   checkout(request: CheckoutRequest): Observable<CheckoutResponse> {
     return this.http.post<CheckoutResponse>(`${environment.apiBaseUrl}/orders/orders/checkout`, request);
+  }
+
+  confirmPayment(orderRef: string, providerRef: string): Observable<CheckoutResponse> {
+    return this.http.post<CheckoutResponse>(`${environment.apiBaseUrl}/orders/orders/${encodeURIComponent(orderRef)}/confirm-payment?providerRef=${encodeURIComponent(providerRef)}`, {});
+  }
+
+  cancelPayment(orderRef: string): Observable<CheckoutResponse> {
+    return this.http.post<CheckoutResponse>(`${environment.apiBaseUrl}/orders/orders/${encodeURIComponent(orderRef)}/cancel-payment`, {});
   }
 
   listMyOrders(): Observable<Order[]> {

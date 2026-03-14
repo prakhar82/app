@@ -4,6 +4,7 @@ import com.grocery.common.api.DomainException;
 import com.grocery.payment.domain.PaymentEntity;
 import com.grocery.payment.dto.PaymentIntentRequest;
 import com.grocery.payment.dto.PaymentIntentResponse;
+import com.grocery.payment.dto.PaymentSessionStatusResponse;
 import com.grocery.payment.repo.PaymentRepository;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,10 @@ public class PaymentService {
         entity.setProviderRef(response.providerRef());
         paymentRepository.save(entity);
         return response;
+    }
+
+    public PaymentSessionStatusResponse getSessionStatus(String providerRef) {
+        return paymentProvider.getSessionStatus(providerRef);
     }
 
     public String webhook(String orderRef, String status) {
