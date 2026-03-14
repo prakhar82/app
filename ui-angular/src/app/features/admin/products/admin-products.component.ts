@@ -3,13 +3,14 @@ import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
+import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {ActivatedRoute} from '@angular/router';
 import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/api/catalog-api.service';
 
 @Component({
   selector: 'app-admin-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule],
+  imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
   template: `
     <h3>Admin Product Management</h3>
     <p class="muted">Create products manually, edit existing products, or remove products directly from this screen.</p>
@@ -58,9 +59,10 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
         <button mat-stroked-button (click)="reload()">Search</button>
         <button mat-button (click)="clear()">Clear</button>
       </div>
+      <div class="page-note" *ngIf="!loading && products.length > 0">{{productPageLabel()}}</div>
 
       <div class="scroll-wrap">
-        <table class="table" *ngIf="products.length > 0">
+        <table class="table desktop-table" *ngIf="products.length > 0">
           <thead>
           <tr>
             <th>SKU</th>
@@ -74,7 +76,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
           </tr>
           </thead>
           <tbody>
-          <tr *ngFor="let p of products" [class.selected]="selected?.id === p.id">
+          <tr *ngFor="let p of pagedProducts()" [class.selected]="selected?.id === p.id">
             <td>{{p.sku}}</td>
             <td>{{p.name}}</td>
             <td>{{p.category}}</td>
@@ -89,9 +91,37 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
           </tr>
           </tbody>
         </table>
+        <div class="mobile-list" *ngIf="products.length > 0">
+          <article class="mobile-product" *ngFor="let p of pagedProducts()" [class.selected]="selected?.id === p.id">
+            <div class="mobile-head">
+              <div>
+                <strong>{{p.name}}</strong>
+                <p>{{p.sku}}</p>
+              </div>
+              <strong>{{p.price | currency:'EUR'}}</strong>
+            </div>
+            <div class="mobile-meta">
+              <span>{{p.category}}</span>
+              <span>{{p.subcategory}}</span>
+              <span>Tax {{p.taxPercent || 0}}%</span>
+              <span>Unit {{p.unit || '-'}}</span>
+            </div>
+            <div class="actions">
+              <button mat-stroked-button color="primary" (click)="select(p)">Edit</button>
+              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+            </div>
+          </article>
+        </div>
         <p *ngIf="!loading && products.length === 0" class="blank">No products found.</p>
         <p *ngIf="loading" class="blank">Loading products...</p>
       </div>
+      <mat-paginator *ngIf="products.length > 0"
+                     [length]="products.length"
+                     [pageIndex]="pageIndex"
+                     [pageSize]="pageSize"
+                     [pageSizeOptions]="[6, 8, 12]"
+                     (page)="onPage($event)">
+      </mat-paginator>
     </mat-card>
 
     <mat-card class="editor-card" *ngIf="selected">
@@ -144,12 +174,20 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     .muted { color: #587067; margin-top: -.25rem; }
     .section-card, .editor-card { border-radius: 14px; margin-top: .8rem; }
     .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; }
+    .page-note { margin: -.2rem 0 .8rem; color: #587067; font-size: .92rem; }
     .search { flex: 1; max-width: 420px; padding: .5rem .65rem; border: 1px solid #cfdad4; border-radius: 8px; }
     .scroll-wrap { max-height: 52vh; overflow: auto; border: 1px solid #e2ebe6; border-radius: 10px; background: #fff; }
     .table { width: 100%; border-collapse: collapse; min-width: 840px; }
     .table th, .table td { padding: .55rem; border-bottom: 1px solid #e2ebe6; text-align: left; }
     .table thead th { position: sticky; top: 0; background: #f2f8f4; z-index: 1; }
     .table tr.selected { background: #eef7f2; }
+    .mobile-list { display: none; padding: .7rem; gap: .7rem; }
+    .mobile-product { border: 1px solid #dfe8e3; border-radius: 12px; padding: .85rem; background: #fbfdfc; }
+    .mobile-product.selected { border-color: #91b8a5; background: #eef7f2; }
+    .mobile-head { display: flex; justify-content: space-between; gap: .75rem; }
+    .mobile-head p { margin: .15rem 0 0; color: #60766c; }
+    .mobile-meta { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
+    .mobile-meta span { background: #eef4f1; border-radius: 999px; padding: .2rem .55rem; font-size: .84rem; color: #355448; }
     .act-col { width: 180px; text-align: center; }
     .actions { display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap; }
     .blank { margin: .8rem; color: #5a7067; }
@@ -161,11 +199,19 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     .image-zone img { width: 220px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #d8e4de; }
     .path { font-size: .8rem; color: #6f8278; margin: 0 0 .5rem; word-break: break-all; }
     .btn-row { margin-top: .7rem; display: flex; gap: .6rem; flex-wrap: wrap; }
+    mat-paginator { margin-top: .8rem; border: 1px solid #e2ebe6; border-radius: 12px; background: #fbfdfc; }
     .error { color: #b42318; margin-top: .6rem; }
     .ok { color: #126b2f; margin-top: .6rem; }
     @media (max-width: 980px) {
       .grid { grid-template-columns: 1fr; }
       .image-zone { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      .toolbar { flex-wrap: wrap; }
+      .search { max-width: none; width: 100%; }
+      .desktop-table { display: none; }
+      .mobile-list { display: grid; }
+      .scroll-wrap { max-height: none; }
     }
   `]
 })
@@ -184,6 +230,8 @@ export class AdminProductsComponent {
   message = '';
   query = '';
   selectedFile: File | null = null;
+  pageIndex = 0;
+  pageSize = 8;
   draft: ProductCreateRequest = this.emptyDraft();
   edit = {
     name: '',
@@ -206,6 +254,7 @@ export class AdminProductsComponent {
     this.loading = true;
     this.error = '';
     this.message = '';
+    this.pageIndex = 0;
     this.catalogApi.listAdminProducts(this.query).subscribe({
       next: (products) => {
         this.products = products;
@@ -270,6 +319,7 @@ export class AdminProductsComponent {
         this.message = 'Product added successfully.';
         this.draft = this.emptyDraft();
         this.products = [product, ...this.products];
+        this.pageIndex = 0;
       },
       error: (err) => {
         this.creating = false;
@@ -290,6 +340,7 @@ export class AdminProductsComponent {
         this.deletingId = null;
         this.message = 'Product deleted successfully.';
         this.products = this.products.filter(existing => existing.id !== product.id);
+        this.ensureValidPage();
         if (this.selected?.id === product.id) {
           this.selected = null;
         }
@@ -299,6 +350,24 @@ export class AdminProductsComponent {
         this.error = err?.error?.message || 'Unable to delete product.';
       }
     });
+  }
+
+  pagedProducts(): Product[] {
+    this.ensureValidPage();
+    const start = this.pageIndex * this.pageSize;
+    return this.products.slice(start, start + this.pageSize);
+  }
+
+  onPage(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+  }
+
+  productPageLabel(): string {
+    const total = this.products.length;
+    const start = total === 0 ? 0 : this.pageIndex * this.pageSize + 1;
+    const end = Math.min(total, (this.pageIndex + 1) * this.pageSize);
+    return `Showing ${start}-${end} of ${total}`;
   }
 
   saveDetails(): void {
@@ -375,5 +444,12 @@ export class AdminProductsComponent {
   private blankToUndefined(value?: string): string | undefined {
     const trimmed = (value || '').trim();
     return trimmed ? trimmed : undefined;
+  }
+
+  private ensureValidPage(): void {
+    const totalPages = Math.max(1, Math.ceil(this.products.length / this.pageSize));
+    if (this.pageIndex >= totalPages) {
+      this.pageIndex = 0;
+    }
   }
 }

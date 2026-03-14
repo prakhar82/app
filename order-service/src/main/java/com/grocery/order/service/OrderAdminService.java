@@ -14,18 +14,23 @@ import java.util.Set;
 @Service
 public class OrderAdminService {
     private static final Set<String> ALLOWED = Set.of(
-            "PENDING", "COD_PENDING", "CONFIRMED", "FULFILLING", "SHIPPED", "DELIVERED", "CANCELED", "FAILED", "REJECTED"
+            "PENDING", "COD_PENDING", "PENDING_PAYMENT", "CONFIRMED", "FULFILLING", "SHIPPED",
+            "DELIVERED", "CANCELED", "FAILED", "PAYMENT_CANCELLED", "PAYMENT_FAILED", "REJECTED"
     );
     private static final Set<String> ACTIVE = Set.of(
-            "PENDING", "COD_PENDING", "CONFIRMED", "FULFILLING", "SHIPPED"
+            "PENDING", "COD_PENDING", "PENDING_PAYMENT", "CONFIRMED", "FULFILLING", "SHIPPED"
     );
 
     private final OrderRepository orderRepository;
     private final InventoryClient inventoryClient;
+    private final OrderNotificationService orderNotificationService;
 
-    public OrderAdminService(OrderRepository orderRepository, InventoryClient inventoryClient) {
+    public OrderAdminService(OrderRepository orderRepository,
+                             InventoryClient inventoryClient,
+                             OrderNotificationService orderNotificationService) {
         this.orderRepository = orderRepository;
         this.inventoryClient = inventoryClient;
+        this.orderNotificationService = orderNotificationService;
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +72,7 @@ public class OrderAdminService {
             }
             inventoryClient.release(orderRef);
             order.setRejectionComment(comment.trim());
+            orderNotificationService.sendOrderRejectedEmail(order);
         } else {
             order.setRejectionComment(null);
         }

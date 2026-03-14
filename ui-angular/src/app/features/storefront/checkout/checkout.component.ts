@@ -143,6 +143,7 @@ export class CheckoutComponent {
   postcodeError = '';
   private confirmAttempts = 0;
   private readonly maxConfirmAttempts = 10;
+  private retryOrderRef = '';
 
   constructor() {
     this.store.select('auth').pipe(take(1)).subscribe(auth => {
@@ -152,6 +153,7 @@ export class CheckoutComponent {
         return;
       }
       this.email = auth.email;
+      this.retryOrderRef = this.route.snapshot.queryParamMap.get('retryOrderRef') || '';
       forkJoin({
         cart: this.cartApi.list(this.email),
         products: this.catalogApi.listProducts(),
@@ -279,6 +281,7 @@ export class CheckoutComponent {
       addressMode: this.addressMode.value!,
       addressId: this.addressMode.value === 'SAVED' ? this.selectedAddressId.value! : undefined,
       saveAddress: this.addressMode.value === 'NEW' ? !!this.newAddressForm.getRawValue().saveToProfile : undefined,
+      resubmittedOrderRef: this.retryOrderRef || undefined,
       newAddress: this.addressMode.value === 'NEW' ? {
         label: this.newAddressForm.getRawValue().label || undefined,
         line1: this.newAddressForm.getRawValue().line1!,

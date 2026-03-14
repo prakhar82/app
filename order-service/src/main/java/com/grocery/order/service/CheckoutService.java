@@ -45,6 +45,7 @@ public class CheckoutService {
         OrderEntity order = new OrderEntity();
         order.setOrderRef(orderRef);
         order.setUserEmail(authenticatedEmail);
+        order.setUserPhone(identityClient.getProfile(authenticatedEmail).phone());
         order.setPaymentMethod(request.paymentMethod());
         order.setStatus("PENDING");
 
@@ -66,12 +67,14 @@ public class CheckoutService {
         inventoryClient.reserve(orderRef, request.items());
 
         if ("COD".equalsIgnoreCase(request.paymentMethod())) {
+            markPriorRejectedOrderResubmitted(request.resubmittedOrderRef(), authenticatedEmail, orderRef);
             order.setStatus("COD_PENDING");
             return new CheckoutResponse(orderRef, order.getStatus(), "NOT_REQUIRED", null);
         }
 
         var paymentIntent = paymentClient.pay(orderRef, total, request.paymentMethod());
         if ("REQUIRES_ACTION".equalsIgnoreCase(paymentIntent.status())) {
+            markPriorRejectedOrderResubmitted(request.resubmittedOrderRef(), authenticatedEmail, orderRef);
             order.setStatus("PENDING_PAYMENT");
             return new CheckoutResponse(orderRef, order.getStatus(), paymentIntent.status(), paymentIntent.redirectUrl());
         }
@@ -162,6 +165,24 @@ public class CheckoutService {
         entity.setPostcode(snapshot.postcode());
         entity.setCountry(snapshot.country());
         orderDeliveryAddressRepository.save(entity);
+    }
+
+    private void markPriorRejectedOrderResubmitted(String rejectedOrderRef, String authenticatedEmail, String newOrderRef) {
+        if (rejectedOrderRef == null || rejectedOrderRef.isBlank()) {
+            return;
+        }
+
+        OrderEntity priorOrder = orderRepository.findByOrderRef(rejectedOrderRef.trim())
+                .orElseThrow(() -> new DomainException("ORDER_NOT_FOUND", "Original rejected order not found"));
+        if (!priorOrder.getUserEmail().equalsIgnoreCase(authenticatedEmail)) {
+            throw new DomainException("UNAUTHORIZED", "Original order does not belong to authenticated user");
+        }
+        if (!"REJECTED".equalsIgnoreCase(priorOrder.getStatus())) {
+            throw new DomainException("ORDER_NOT_REJECTED", "Only rejected orders can be resubmitted");
+        }
+
+        priorOrder.setStatus("CANCELED");
+        priorOrder.setRejectionComment("Resubmitted as " + newOrderRef);
     }
 
     private record DeliveryAddressSnapshot(String label, String line1, String line2, String city, String postcode, String country) {}

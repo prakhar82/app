@@ -77,6 +77,7 @@ import {ProductCardComponent} from './product-card.component';
         </div>
 
         <div class="toolbar">
+          <div class="result-note" *ngIf="!loading && totalElements > 0">{{pageSummary()}}</div>
           <mat-chip-set *ngIf="activeChips.length > 0">
             <mat-chip *ngFor="let chip of activeChips" [removable]="true" (removed)="removeChip(chip)">
               {{chip.label}}
@@ -132,18 +133,21 @@ import {ProductCardComponent} from './product-card.component';
     .products { min-width: 0; }
     .mobile-filters { display: none; margin-bottom: .7rem; }
     .toolbar { display: flex; justify-content: space-between; gap: .6rem; align-items: flex-start; margin-bottom: .6rem; }
+    .result-note { color: #557065; font-size: .92rem; padding-top: .35rem; }
     .sort { width: 230px; }
     .loader { min-height: 180px; display: grid; place-items: center; }
     .empty { border: 1px dashed #cddcd4; border-radius: 12px; padding: 1.4rem; text-align: center; color: #4c665b; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
-    mat-paginator { margin-top: .7rem; border: 1px solid #e3ece7; border-radius: 10px; }
+    mat-paginator { margin-top: .7rem; border: 1px solid #e3ece7; border-radius: 10px; background: #fbfdfc; }
     @media (max-width: 1080px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 860px) {
+      .header { flex-direction: column; gap: .7rem; }
       .layout { grid-template-columns: 1fr; }
       .filters { display: none; }
       .mobile-filters { display: block; }
       .toolbar { flex-direction: column; }
-      .sort { width: 100%; max-width: 260px; }
+      .result-note { padding-top: 0; }
+      .sort { width: 100%; max-width: none; }
       .grid { grid-template-columns: 1fr; }
     }
   `]
@@ -444,6 +448,12 @@ export class ProductListComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  pageSummary(): string {
+    const start = this.totalElements === 0 ? 0 : this.pageIndex * this.pageSize + 1;
+    const end = Math.min(this.totalElements, (this.pageIndex + 1) * this.pageSize);
+    return `Showing ${start}-${end} of ${this.totalElements} products`;
   }
 }
 

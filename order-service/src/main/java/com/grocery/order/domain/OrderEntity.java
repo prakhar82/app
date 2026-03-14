@@ -16,6 +16,8 @@ public class OrderEntity {
     private String orderRef;
     @Column(nullable = false)
     private String userEmail;
+    @Column
+    private String userPhone;
     @Column(nullable = false)
     private String paymentMethod;
     @Column(nullable = false)
@@ -34,6 +36,7 @@ public class OrderEntity {
 
     public Long getId(){return id;} public String getOrderRef(){return orderRef;} public void setOrderRef(String o){this.orderRef=o;}
     public String getUserEmail(){return userEmail;} public void setUserEmail(String u){this.userEmail=u;}
+    public String getUserPhone(){return userPhone;} public void setUserPhone(String userPhone){this.userPhone=userPhone;}
     public String getPaymentMethod(){return paymentMethod;} public void setPaymentMethod(String p){this.paymentMethod=p;}
     public String getStatus(){return status;} public void setStatus(String s){this.status=s;}
     public String getRejectionComment(){return rejectionComment;} public void setRejectionComment(String rejectionComment){this.rejectionComment=rejectionComment;}

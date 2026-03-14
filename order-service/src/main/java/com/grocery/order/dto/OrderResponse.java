@@ -7,6 +7,7 @@ import java.util.List;
 public record OrderResponse(
         String orderRef,
         String userEmail,
+        String userPhone,
         String paymentMethod,
         String status,
         String rejectionComment,

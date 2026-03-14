@@ -7,7 +7,7 @@ import {take} from 'rxjs/operators';
 import {CartApiService, CartItem} from '../../../core/api/cart-api.service';
 import {InventoryApiService} from '../../../core/api/inventory-api.service';
 import {CatalogApiService} from '../../../core/api/catalog-api.service';
-import {RouterLink} from '@angular/router';
+import {ActivatedRoute, RouterLink} from '@angular/router';
 
 @Component({
   selector: 'app-cart',
@@ -34,7 +34,11 @@ import {RouterLink} from '@angular/router';
     <div class="footer" *ngIf="items.length > 0">
       <strong>Total: {{totalPrice() | currency:'EUR'}}</strong>
       <div class="actions">
-        <button mat-raised-button color="primary" routerLink="/app/checkout">Proceed to Checkout</button>
+        <button mat-raised-button color="primary"
+                [routerLink]="['/app/checkout']"
+                [queryParams]="retryOrderRef ? {retryOrderRef: retryOrderRef} : null">
+          Proceed to Checkout
+        </button>
       </div>
     </div>
 
@@ -62,14 +66,17 @@ export class CartComponent {
   private cartApi = inject(CartApiService);
   private inventoryApi = inject(InventoryApiService);
   private catalogApi = inject(CatalogApiService);
+  private route = inject(ActivatedRoute);
 
   items: CartItem[] = [];
   availableBySku: Record<string, number> = {};
   priceBySku: Record<string, number> = {};
   email = '';
   error = '';
+  retryOrderRef = '';
 
   constructor() {
+    this.retryOrderRef = this.route.snapshot.queryParamMap.get('retryOrderRef') || '';
     this.store.select('auth').pipe(take(1)).subscribe(auth => {
       if (!auth.email) {
         this.error = 'Please login again.';

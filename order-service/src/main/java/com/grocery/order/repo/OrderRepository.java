@@ -19,6 +19,6 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     @Query("select coalesce(sum(o.totalAmount),0) from OrderEntity o where o.status in ('CONFIRMED','FULFILLING','SHIPPED','DELIVERED','COD_PENDING')")
     java.math.BigDecimal totalRevenue();
 
-    @Query("select count(o) from OrderEntity o where o.status in ('PENDING','COD_PENDING','CONFIRMED','FULFILLING','SHIPPED')")
+    @Query("select count(o) from OrderEntity o where o.status in ('PENDING','COD_PENDING','PENDING_PAYMENT','CONFIRMED','FULFILLING','SHIPPED')")
     long totalInProcess();
 }

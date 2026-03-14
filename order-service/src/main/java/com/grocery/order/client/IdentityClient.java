@@ -55,6 +55,20 @@ public class IdentityClient {
         return response.getBody();
     }
 
+    public MeProfileResponse getProfile(String userEmail) {
+        HttpEntity<Void> entity = new HttpEntity<>(headersForUser(userEmail));
+        ResponseEntity<MeProfileResponse> response = restTemplate.exchange(
+                baseUrl + "/me",
+                HttpMethod.GET,
+                entity,
+                MeProfileResponse.class
+        );
+        if (response.getBody() == null) {
+            throw new DomainException("USER_NOT_FOUND", "User profile not found");
+        }
+        return response.getBody();
+    }
+
     private HttpHeaders headersForUser(String userEmail) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -78,5 +92,18 @@ public class IdentityClient {
             String city,
             String reason,
             String normalizedPostcode
+    ) {}
+
+    public record MeProfileResponse(
+            String email,
+            String name,
+            String phone,
+            String preferredLanguage,
+            String accountHolderName,
+            String iban,
+            String bankName,
+            Long defaultAddressId,
+            String role,
+            String status
     ) {}
 }

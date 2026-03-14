@@ -55,7 +55,7 @@ import {Product} from '../../../core/api/catalog-api.service';
     </mat-card>
   `,
   styles: [`
-    .item { border-radius: 14px; display: flex; flex-direction: column; gap: .35rem; height: 100%; }
+    .item { border-radius: 14px; display: flex; flex-direction: column; gap: .35rem; height: 100%; padding-bottom: .35rem; }
     .item img { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; }
     h4 { margin: .2rem 0 0; }
     .meta { margin: 0; color: #5a7068; font-size: .88rem; }
@@ -65,6 +65,12 @@ import {Product} from '../../../core/api/catalog-api.service';
     .qty-row { display: flex; align-items: center; gap: .35rem; }
     .qty-field { width: 88px; }
     .actions { display: flex; gap: .45rem; margin-top: auto; flex-wrap: wrap; }
+    @media (max-width: 860px) {
+      .item img { height: 190px; }
+      .actions { flex-direction: column; }
+      .actions button { width: 100%; }
+      .qty-row { justify-content: space-between; }
+    }
   `]
 })
 export class ProductCardComponent {

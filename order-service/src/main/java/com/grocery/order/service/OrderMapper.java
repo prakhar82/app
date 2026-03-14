@@ -12,6 +12,7 @@ public final class OrderMapper {
         return new OrderResponse(
                 order.getOrderRef(),
                 order.getUserEmail(),
+                order.getUserPhone(),
                 order.getPaymentMethod(),
                 order.getStatus(),
                 order.getRejectionComment(),

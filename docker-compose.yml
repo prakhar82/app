@@ -83,6 +83,13 @@ services:
       INVENTORY_BASE_URL: http://inventory-service:8083
       PAYMENT_BASE_URL: http://payment-service:8086
       IDENTITY_BASE_URL: http://identity-service:8081
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS_ENABLE:-false}
+      MAIL_FROM: ${MAIL_FROM:-prakhar.unique@gmail.com}
     depends_on: [postgres, inventory-service, payment-service]
 
   payment-service:

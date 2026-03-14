@@ -14,7 +14,8 @@ public record CheckoutRequest(
         @NotBlank String addressMode,
         Long addressId,
         Boolean saveAddress,
-        @Valid AddressInput newAddress
+        @Valid AddressInput newAddress,
+        String resubmittedOrderRef
 ) {
     public record Item(@NotBlank String sku, @NotBlank String name, @Min(1) int qty, @NotNull BigDecimal unitPrice) {}
 

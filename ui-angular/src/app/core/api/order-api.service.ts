@@ -16,6 +16,7 @@ export interface CheckoutRequest {
   addressMode: 'SAVED' | 'NEW';
   addressId?: number;
   saveAddress?: boolean;
+  resubmittedOrderRef?: string;
   newAddress?: {
     label?: string;
     line1: string;
@@ -44,10 +45,12 @@ export interface Order {
   id?: number;
   orderRef: string;
   userEmail: string;
+  userPhone?: string | null;
   paymentMethod: string;
   status: string;
   rejectionComment?: string | null;
   totalAmount: number;
+  createdAt: string;
   items: OrderItem[];
 }
 
