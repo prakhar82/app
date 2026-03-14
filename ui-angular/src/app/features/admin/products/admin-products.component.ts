@@ -1,10 +1,10 @@
 import {Component, inject} from '@angular/core';
 import {CommonModule, CurrencyPipe} from '@angular/common';
 import {FormsModule} from '@angular/forms';
+import {ActivatedRoute} from '@angular/router';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
 import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
-import {ActivatedRoute} from '@angular/router';
 import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/api/catalog-api.service';
 
 @Component({
@@ -12,274 +12,482 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
   standalone: true,
   imports: [CommonModule, CurrencyPipe, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
   template: `
-    <h3>Admin Product Management</h3>
-    <p class="muted">Keep the list compact on the left and all product fields in the side panel.</p>
+    <div class="page-head">
+      <h3>Admin Product Management</h3>
+      <p class="muted">Edit products inline inside the table. Nothing opens below the page.</p>
+    </div>
 
     <mat-card class="section-card">
-      <div class="workspace">
-        <div class="toolbar">
-          <input class="search" type="text" placeholder="Search by name, SKU, or category" [(ngModel)]="query" (keyup.enter)="reload()" />
-          <button mat-stroked-button (click)="reload()">Search</button>
-          <button mat-button (click)="clear()">Clear</button>
-        </div>
-        <div class="page-note" *ngIf="!loading && (products.length > 0 || creatingInline)">{{productPageLabel()}}</div>
+      <div class="toolbar">
+        <input class="search" type="text" placeholder="Search by name, SKU, or category" [(ngModel)]="query" (keyup.enter)="reload()" />
+        <button mat-stroked-button (click)="reload()">Search</button>
+        <button mat-button (click)="clear()">Clear</button>
+        <span class="spacer"></span>
+        <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add Product</button>
+      </div>
 
-        <div class="table-shell">
-          <table class="table desktop-table" *ngIf="products.length > 0 || creatingInline">
-            <thead>
-            <tr>
-              <th>Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th class="act-col">Action</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let p of pagedProducts()"
-                [class.selected]="selected?.id === p.id"
-                (click)="select(p)">
+      <div class="page-note" *ngIf="!loading && products.length > 0">{{productPageLabel()}}</div>
+
+      <div class="table-shell">
+        <table class="table desktop-table" *ngIf="products.length > 0 || creatingInline">
+          <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th class="act-col">Action</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr class="create-summary selected" *ngIf="creatingInline">
+            <td>{{draft.name || 'New product'}}</td>
+            <td>{{draft.category || 'Category'}}</td>
+            <td>{{(draft.price || 0) | currency:'EUR'}}</td>
+            <td class="act-col actions">
+              <button mat-button (click)="cancelCreate()">Collapse</button>
+            </td>
+          </tr>
+          <tr class="detail-row" *ngIf="creatingInline">
+            <td colspan="4">
+              <div class="detail-panel open">
+                <div class="detail-head">
+                  <strong>Add Product</strong>
+                  <button mat-button (click)="cancelCreate()">Close</button>
+                </div>
+
+                <div class="detail-grid">
+                  <label>SKU
+                    <input [(ngModel)]="draft.sku" />
+                  </label>
+                  <label>Name
+                    <input [(ngModel)]="draft.name" />
+                  </label>
+                  <label>Category
+                    <input [(ngModel)]="draft.category" />
+                  </label>
+                  <label>Subcategory
+                    <input [(ngModel)]="draft.subcategory" />
+                  </label>
+                  <label>Price (EUR)
+                    <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
+                  </label>
+                  <label>Tax (%)
+                    <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
+                  </label>
+                  <label>Discount (%)
+                    <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
+                  </label>
+                  <label>Unit
+                    <input [(ngModel)]="draft.unit" />
+                  </label>
+                  <label class="full">Description
+                    <textarea rows="3" [(ngModel)]="draft.description"></textarea>
+                  </label>
+                  <label class="full">Image URL
+                    <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
+                  </label>
+                </div>
+
+                <div class="upload-zone">
+                  <div>
+                    <p class="upload-label">Or upload image from device</p>
+                    <input type="file" accept="image/*" (change)="onCreateFileSelected($event)" />
+                    <p class="path" *ngIf="createSelectedFile">{{createSelectedFile.name}}</p>
+                  </div>
+                </div>
+
+                <div class="detail-actions">
+                  <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                    {{creating ? 'Saving...' : 'Save Product'}}
+                  </button>
+                  <button mat-button (click)="cancelCreate()">Cancel</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+
+          <ng-container *ngFor="let p of pagedProducts()">
+            <tr [class.selected]="selected?.id === p.id" (click)="toggleSelection(p)">
               <td>{{p.name}}</td>
               <td>{{p.category}}</td>
               <td>{{p.price | currency:'EUR'}}</td>
               <td class="act-col actions" (click)="$event.stopPropagation()">
+                <button mat-button (click)="toggleSelection(p)">{{selected?.id === p.id ? 'Collapse' : 'Edit'}}</button>
                 <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
               </td>
             </tr>
-            <tr *ngIf="creatingInline" class="new-row selected">
-              <td><input [(ngModel)]="draft.name" placeholder="Product name" /></td>
-              <td><input [(ngModel)]="draft.category" placeholder="Category" /></td>
-              <td><input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" /></td>
-              <td class="act-col actions">
-                <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-                  {{creating ? 'Saving...' : 'Save'}}
-                </button>
-                <button mat-button (click)="cancelCreate()">Cancel</button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
+            <tr class="detail-row" *ngIf="selected?.id === p.id">
+              <td colspan="4">
+                <div class="detail-panel open">
+                  <div class="detail-head">
+                    <strong>Edit Product</strong>
+                    <button mat-button (click)="closeSelection()">Close</button>
+                  </div>
 
-          <div class="mobile-list" *ngIf="products.length > 0 || creatingInline">
-            <article class="mobile-product"
-                     *ngFor="let p of pagedProducts()"
-                     [class.selected]="selected?.id === p.id"
-                     (click)="select(p)">
-              <div class="mobile-head">
-                <div>
-                  <strong>{{p.name}}</strong>
-                  <p>{{p.category}}</p>
+                  <div class="detail-grid">
+                    <label>SKU
+                      <input [(ngModel)]="edit.sku" disabled />
+                    </label>
+                    <label>Name
+                      <input [(ngModel)]="edit.name" />
+                    </label>
+                    <label>Category
+                      <input [(ngModel)]="edit.category" disabled />
+                    </label>
+                    <label>Subcategory
+                      <input [(ngModel)]="edit.subcategory" disabled />
+                    </label>
+                    <label>Price (EUR)
+                      <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
+                    </label>
+                    <label>Tax (%)
+                      <input type="number" min="0" step="0.01" [(ngModel)]="edit.taxPercent" />
+                    </label>
+                    <label>Discount (%)
+                      <input type="number" min="0" step="0.01" [(ngModel)]="edit.discountPercent" />
+                    </label>
+                    <label>Unit
+                      <input [(ngModel)]="edit.unit" />
+                    </label>
+                    <label class="full">Description
+                      <textarea rows="3" [(ngModel)]="edit.description"></textarea>
+                    </label>
+                    <label class="full">Image URL
+                      <input [(ngModel)]="edit.imageUrl" placeholder="https://..." />
+                    </label>
+                  </div>
+
+                  <div class="upload-zone">
+                    <img [src]="edit.imageUrl || selected?.imageUrl || 'https://placehold.co/220x140'" alt="product image" />
+                    <div>
+                      <p class="upload-label">Or upload image from device</p>
+                      <input type="file" accept="image/*" (change)="onEditFileSelected($event)" />
+                      <p class="path">{{editSelectedFile?.name || edit.imageUrl || selected?.imageUrl || 'No image set'}}</p>
+                    </div>
+                  </div>
+
+                  <div class="detail-actions">
+                    <button mat-stroked-button (click)="uploadEditImage()" [disabled]="!editSelectedFile || savingImage">
+                      {{savingImage ? 'Uploading...' : 'Upload Image'}}
+                    </button>
+                    <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
+                      {{savingDetails ? 'Saving...' : 'Save Changes'}}
+                    </button>
+                    <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+                    <button mat-button (click)="closeSelection()">Close</button>
+                  </div>
                 </div>
-                <strong>{{p.price | currency:'EUR'}}</strong>
-              </div>
-              <div class="mobile-actions" (click)="$event.stopPropagation()">
-                <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
-              </div>
-            </article>
+              </td>
+            </tr>
+          </ng-container>
+          </tbody>
+        </table>
 
-            <article class="mobile-product selected new-row" *ngIf="creatingInline">
-              <label>
-                Name
-                <input [(ngModel)]="draft.name" placeholder="Product name" />
-              </label>
-              <label>
-                Category
-                <input [(ngModel)]="draft.category" placeholder="Category" />
-              </label>
-              <label>
-                Price
-                <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" />
-              </label>
-              <div class="mobile-actions">
-                <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-                  {{creating ? 'Saving...' : 'Save'}}
-                </button>
-                <button mat-button (click)="cancelCreate()">Cancel</button>
-              </div>
-            </article>
-          </div>
-
-          <p *ngIf="!loading && products.length === 0 && !creatingInline" class="blank">No products found.</p>
-          <p *ngIf="loading" class="blank">Loading products...</p>
-        </div>
-
-        <div class="table-footer">
-          <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add Product</button>
-        </div>
-
-        <mat-paginator *ngIf="products.length > 0"
-                       [length]="products.length"
-                       [pageIndex]="productPageIndex"
-                       [pageSize]="productPageSize"
-                       [pageSizeOptions]="[6, 8, 12]"
-                       (page)="onPage($event)">
-        </mat-paginator>
-        <div class="editor-panel">
-          <div class="editor-head">
-            <div>
-              <h4>{{creatingInline ? 'New Product Details' : (selected ? ('Edit Product: ' + selected.name) : 'Product Details')}}</h4>
-              <p class="editor-hint" *ngIf="!selected && !creatingInline">Select a row or click Add Product to edit all fields here.</p>
-              <p class="editor-hint" *ngIf="selected || creatingInline">All create and edit fields stay inside this same product section.</p>
-            </div>
-            <button mat-button *ngIf="selected" (click)="closeSelection()">Close</button>
-          </div>
-
-          <div class="placeholder" *ngIf="!selected && !creatingInline">
-            Pick a product from the list, or click Add Product to start a new entry.
-          </div>
-
-          <div *ngIf="creatingInline">
-            <div class="grid">
-              <label>SKU
-                <input [(ngModel)]="draft.sku" />
-              </label>
-              <label>Name
-                <input [(ngModel)]="draft.name" />
-              </label>
-              <label>Category
-                <input [(ngModel)]="draft.category" />
-              </label>
-              <label>Subcategory
-                <input [(ngModel)]="draft.subcategory" />
-              </label>
-              <label>Price (EUR)
-                <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
-              </label>
-              <label>Tax (%)
-                <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
-              </label>
-              <label>Discount (%)
-                <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
-              </label>
-              <label>Unit
-                <input [(ngModel)]="draft.unit" />
-              </label>
-              <label class="full">Description
-                <textarea rows="3" [(ngModel)]="draft.description"></textarea>
-              </label>
-              <label class="full">Image URL
-                <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
-              </label>
-            </div>
-
-            <div class="editor-actions">
-              <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-                {{creating ? 'Saving...' : 'Save Product'}}
-              </button>
-              <button mat-button (click)="cancelCreate()">Cancel</button>
-            </div>
-          </div>
-
-          <div *ngIf="selected && !creatingInline">
-            <div class="grid">
-              <label>SKU
-                <input [(ngModel)]="edit.sku" disabled />
-              </label>
-              <label>Name
-                <input [(ngModel)]="edit.name" />
-              </label>
-              <label>Category
-                <input [(ngModel)]="edit.category" disabled />
-              </label>
-              <label>Subcategory
-                <input [(ngModel)]="edit.subcategory" disabled />
-              </label>
-              <label>Price (EUR)
-                <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
-              </label>
-              <label>Tax (%)
-                <input type="number" min="0" step="0.01" [(ngModel)]="edit.taxPercent" />
-              </label>
-              <label>Discount (%)
-                <input type="number" min="0" step="0.01" [(ngModel)]="edit.discountPercent" />
-              </label>
-              <label>Unit
-                <input [(ngModel)]="edit.unit" />
-              </label>
-              <label class="full">Description
-                <textarea rows="3" [(ngModel)]="edit.description"></textarea>
-              </label>
-            </div>
-
-            <div class="image-zone">
-              <img [src]="selected.imageUrl || 'https://placehold.co/220x140'" alt="product image" />
+        <div class="mobile-list" *ngIf="products.length > 0 || creatingInline">
+          <article class="mobile-product selected" *ngIf="creatingInline">
+            <div class="mobile-head">
               <div>
-                <p class="path">{{selected.imageUrl || 'No image set'}}</p>
-                <input type="file" accept="image/*" (change)="onFileSelected($event)" />
-                <div class="editor-actions">
-                  <button mat-stroked-button (click)="uploadImage()" [disabled]="!selectedFile || savingImage">
-                    {{savingImage ? 'Uploading...' : 'Upload Image'}}
-                  </button>
-                  <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
-                    {{savingDetails ? 'Saving...' : 'Save Changes'}}
-                  </button>
+                <strong>{{draft.name || 'New product'}}</strong>
+                <p>{{draft.category || 'Category'}}</p>
+              </div>
+              <strong>{{(draft.price || 0) | currency:'EUR'}}</strong>
+            </div>
+            <div class="detail-panel mobile-detail open">
+              <div class="detail-head">
+                <strong>Add Product</strong>
+                <button mat-button (click)="cancelCreate()">Close</button>
+              </div>
+              <div class="detail-grid">
+                <label>SKU
+                  <input [(ngModel)]="draft.sku" />
+                </label>
+                <label>Name
+                  <input [(ngModel)]="draft.name" />
+                </label>
+                <label>Category
+                  <input [(ngModel)]="draft.category" />
+                </label>
+                <label>Subcategory
+                  <input [(ngModel)]="draft.subcategory" />
+                </label>
+                <label>Price (EUR)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
+                </label>
+                <label>Tax (%)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
+                </label>
+                <label>Discount (%)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
+                </label>
+                <label>Unit
+                  <input [(ngModel)]="draft.unit" />
+                </label>
+                <label class="full">Description
+                  <textarea rows="3" [(ngModel)]="draft.description"></textarea>
+                </label>
+                <label class="full">Image URL
+                  <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
+                </label>
+              </div>
+              <div class="upload-zone compact">
+                <div>
+                  <p class="upload-label">Or upload image from device</p>
+                  <input type="file" accept="image/*" (change)="onCreateFileSelected($event)" />
+                  <p class="path" *ngIf="createSelectedFile">{{createSelectedFile.name}}</p>
                 </div>
               </div>
+              <div class="detail-actions">
+                <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                  {{creating ? 'Saving...' : 'Save Product'}}
+                </button>
+                <button mat-button (click)="cancelCreate()">Cancel</button>
+              </div>
             </div>
-          </div>
+          </article>
+
+          <article class="mobile-product"
+                   *ngFor="let p of pagedProducts()"
+                   [class.selected]="selected?.id === p.id">
+            <div class="mobile-head" (click)="toggleSelection(p)">
+              <div>
+                <strong>{{p.name}}</strong>
+                <p>{{p.category}}</p>
+              </div>
+              <strong>{{p.price | currency:'EUR'}}</strong>
+            </div>
+            <div class="mobile-actions" (click)="$event.stopPropagation()">
+              <button mat-button (click)="toggleSelection(p)">{{selected?.id === p.id ? 'Collapse' : 'Edit'}}</button>
+              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+            </div>
+            <div class="detail-panel mobile-detail open" *ngIf="selected?.id === p.id">
+              <div class="detail-head">
+                <strong>Edit Product</strong>
+                <button mat-button (click)="closeSelection()">Close</button>
+              </div>
+              <div class="detail-grid">
+                <label>SKU
+                  <input [(ngModel)]="edit.sku" disabled />
+                </label>
+                <label>Name
+                  <input [(ngModel)]="edit.name" />
+                </label>
+                <label>Category
+                  <input [(ngModel)]="edit.category" disabled />
+                </label>
+                <label>Subcategory
+                  <input [(ngModel)]="edit.subcategory" disabled />
+                </label>
+                <label>Price (EUR)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
+                </label>
+                <label>Tax (%)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="edit.taxPercent" />
+                </label>
+                <label>Discount (%)
+                  <input type="number" min="0" step="0.01" [(ngModel)]="edit.discountPercent" />
+                </label>
+                <label>Unit
+                  <input [(ngModel)]="edit.unit" />
+                </label>
+                <label class="full">Description
+                  <textarea rows="3" [(ngModel)]="edit.description"></textarea>
+                </label>
+                <label class="full">Image URL
+                  <input [(ngModel)]="edit.imageUrl" placeholder="https://..." />
+                </label>
+              </div>
+              <div class="upload-zone compact">
+                <div>
+                  <p class="upload-label">Or upload image from device</p>
+                  <input type="file" accept="image/*" (change)="onEditFileSelected($event)" />
+                  <p class="path">{{editSelectedFile?.name || edit.imageUrl || selected?.imageUrl || 'No image set'}}</p>
+                </div>
+              </div>
+              <div class="detail-actions">
+                <button mat-stroked-button (click)="uploadEditImage()" [disabled]="!editSelectedFile || savingImage">
+                  {{savingImage ? 'Uploading...' : 'Upload Image'}}
+                </button>
+                <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
+                  {{savingDetails ? 'Saving...' : 'Save Changes'}}
+                </button>
+                <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+                <button mat-button (click)="closeSelection()">Close</button>
+              </div>
+            </div>
+          </article>
         </div>
+
+        <div class="blank" *ngIf="loading">Loading products...</div>
+        <div class="blank" *ngIf="!loading && products.length === 0 && !creatingInline">No products found.</div>
       </div>
+
+      <mat-paginator *ngIf="products.length > 0"
+                     [length]="products.length"
+                     [pageIndex]="productPageIndex"
+                     [pageSize]="productPageSize"
+                     [pageSizeOptions]="[6, 8, 12]"
+                     (page)="onPage($event)">
+      </mat-paginator>
     </mat-card>
 
     <p class="error" *ngIf="error">{{error}}</p>
     <p class="ok" *ngIf="message">{{message}}</p>
   `,
   styles: [`
-    :host { display: block; overflow-x: hidden; }
-    .muted { color: #587067; margin-top: -.25rem; }
-    .section-card { border-radius: 14px; margin-top: .8rem; overflow: hidden; }
-    .workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 1rem; align-items: start; }
-    .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; flex-wrap: wrap; }
-    .page-note { margin: -.2rem 0 .8rem; color: #587067; font-size: .92rem; }
-    .search { flex: 1; min-width: 220px; max-width: 420px; padding: .5rem .65rem; border: 1px solid #cfdad4; border-radius: 8px; }
-    .table-shell { border: 1px solid #e2ebe6; border-radius: 10px; background: #fff; overflow: hidden; }
+    :host { display: block; min-height: 0; overflow: hidden; }
+    .page-head { margin-bottom: .7rem; }
+    .page-head h3 { margin: 0; }
+    .muted { color: #587067; margin: .2rem 0 0; }
+    .section-card {
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+      height: calc(100dvh - 220px);
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 14px;
+    }
+    .toolbar { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .spacer { flex: 1; }
+    .search {
+      flex: 1;
+      min-width: 220px;
+      max-width: 420px;
+      padding: .5rem .65rem;
+      border: 1px solid #cfdad4;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    .page-note { margin: -.1rem 0 0; color: #587067; font-size: .92rem; }
+    .table-shell {
+      flex: 1;
+      min-height: 0;
+      border: 1px solid #e2ebe6;
+      border-radius: 12px;
+      background: #fff;
+      overflow: auto;
+    }
     .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .table th, .table td { padding: .7rem; border-bottom: 1px solid #e2ebe6; text-align: left; }
-    .table thead th { background: #f2f8f4; }
+    .table th, .table td {
+      padding: .78rem;
+      border-bottom: 1px solid #e2ebe6;
+      text-align: left;
+      vertical-align: top;
+    }
+    .table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f4f9f6;
+    }
     .table tr { cursor: pointer; }
     .table tr.selected { background: #eef7f2; }
-    .table tr.new-row { cursor: default; }
-    .table input { width: 100%; padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; box-sizing: border-box; }
-    .act-col { width: 180px; }
-    .actions { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap; }
-    .mobile-list { display: none; padding: .7rem; gap: .7rem; }
-    .mobile-product { border: 1px solid #dfe8e3; border-radius: 12px; padding: .85rem; background: #fbfdfc; }
+    .create-summary { cursor: default; }
+    .detail-row { cursor: default; }
+    .detail-row td { padding: 0; background: #fbfdfc; }
+    .detail-panel {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .22s ease, opacity .18s ease;
+    }
+    .detail-panel.open {
+      max-height: 1200px;
+      opacity: 1;
+      padding: 1rem;
+    }
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: .8rem;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .75rem;
+    }
+    .detail-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: .28rem;
+      color: #456458;
+      font-size: .9rem;
+    }
+    .detail-grid input,
+    .detail-grid textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: .48rem .56rem;
+      border: 1px solid #cfdad4;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .detail-grid .full { grid-column: 1 / -1; }
+    .upload-zone {
+      margin-top: .9rem;
+      padding: .85rem;
+      border: 1px solid #dce7e1;
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: .9rem;
+      align-items: start;
+      background: #fff;
+    }
+    .upload-zone.compact { grid-template-columns: 1fr; }
+    .upload-zone img {
+      width: 220px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #d8e4de;
+    }
+    .upload-label { margin: 0 0 .45rem; color: #456458; font-size: .9rem; }
+    .path { margin: .45rem 0 0; color: #6f8278; font-size: .82rem; word-break: break-all; }
+    .detail-actions {
+      margin-top: .9rem;
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+    .act-col { width: 170px; }
+    .actions {
+      display: flex;
+      gap: .35rem;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .mobile-list { display: none; padding: .8rem; gap: .8rem; }
+    .mobile-product {
+      border: 1px solid #dfe8e3;
+      border-radius: 12px;
+      padding: .85rem;
+      background: #fbfdfc;
+    }
     .mobile-product.selected { border-color: #91b8a5; background: #eef7f2; }
     .mobile-head { display: flex; justify-content: space-between; gap: .75rem; }
     .mobile-head p { margin: .15rem 0 0; color: #60766c; }
     .mobile-actions { display: flex; gap: .45rem; justify-content: flex-end; flex-wrap: wrap; margin-top: .75rem; }
-    .mobile-product label { display: flex; flex-direction: column; gap: .25rem; color: #456458; margin-bottom: .6rem; }
-    .mobile-product input { padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; }
-    .blank { margin: .8rem; color: #5a7067; }
-    .table-footer { display: flex; justify-content: flex-end; padding-top: .8rem; }
-    .editor-panel { border: 1px solid #e2ebe6; border-radius: 12px; background: #fbfdfc; padding: 1rem; min-height: 100%; }
-    .editor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .9rem; }
-    .editor-head h4 { margin: 0; }
-    .editor-hint { margin: .2rem 0 0; color: #60766c; }
-    .placeholder { border: 1px dashed #cfddd6; border-radius: 12px; padding: 1rem; color: #5f756a; background: #fafdfb; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
-    .grid label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #456458; }
-    .grid input, .grid textarea { padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; }
-    .grid .full { grid-column: 1 / -1; }
-    .image-zone { margin-top: .8rem; display: grid; grid-template-columns: 220px 1fr; gap: .9rem; align-items: start; }
-    .image-zone img { width: 220px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #d8e4de; }
-    .path { font-size: .8rem; color: #6f8278; margin: 0 0 .5rem; word-break: break-all; }
-    .editor-actions { margin-top: .9rem; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
-    mat-paginator { margin-top: .8rem; border: 1px solid #e2ebe6; border-radius: 12px; background: #fbfdfc; }
+    .mobile-detail { margin-top: .8rem; }
+    .blank { padding: 1rem; color: #587067; }
+    mat-paginator {
+      border: 1px solid #e2ebe6;
+      border-radius: 12px;
+      background: #fbfdfc;
+    }
     .error { color: #b42318; margin-top: .6rem; }
     .ok { color: #126b2f; margin-top: .6rem; }
-    @media (max-width: 1160px) {
-      .workspace { grid-template-columns: 1fr; }
-      .grid { grid-template-columns: 1fr; }
-      .image-zone { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 860px) {
+    @media (max-width: 900px) {
+      .section-card { height: calc(100dvh - 180px); }
       .search { max-width: none; width: 100%; }
       .desktop-table { display: none; }
       .mobile-list { display: grid; }
-      .table-footer { justify-content: stretch; }
-      .table-footer button { width: 100%; }
-      .editor-head { flex-direction: column; }
-      .editor-actions button { width: 100%; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .upload-zone { grid-template-columns: 1fr; }
+      .upload-zone img { width: 100%; max-width: 220px; }
+      .detail-actions button { width: 100%; }
     }
   `]
 })
@@ -298,21 +506,12 @@ export class AdminProductsComponent {
   error = '';
   message = '';
   query = '';
-  selectedFile: File | null = null;
   productPageIndex = 0;
   productPageSize = 8;
+  editSelectedFile: File | null = null;
+  createSelectedFile: File | null = null;
   draft: ProductCreateRequest = this.emptyDraft();
-  edit = {
-    sku: '',
-    name: '',
-    category: '',
-    subcategory: '',
-    price: 0,
-    taxPercent: 0,
-    discountPercent: 0,
-    unit: '',
-    description: ''
-  };
+  edit: ProductCreateRequest = this.emptyDraft();
 
   constructor() {
     const sku = this.route.snapshot.queryParamMap.get('sku');
@@ -326,17 +525,17 @@ export class AdminProductsComponent {
     this.loading = true;
     this.error = '';
     this.message = '';
-    this.productPageIndex = 0;
     this.catalogApi.listAdminProducts(this.query).subscribe({
       next: (products) => {
         this.products = products;
         this.loading = false;
+        this.ensureValidPage();
         if (this.selected) {
-          const refreshed = products.find(p => p.id === this.selected!.id);
+          const refreshed = products.find(product => product.id === this.selected?.id);
           if (refreshed) {
-            this.select(refreshed);
+            this.populateEdit(refreshed);
           } else {
-            this.selected = null;
+            this.closeSelection();
           }
         }
       },
@@ -349,43 +548,38 @@ export class AdminProductsComponent {
 
   clear(): void {
     this.query = '';
+    this.productPageIndex = 0;
     this.reload();
   }
 
   startCreate(): void {
     this.error = '';
     this.message = '';
+    this.closeSelection();
     this.creatingInline = true;
-    this.selected = null;
-    this.selectedFile = null;
+    this.createSelectedFile = null;
     this.draft = this.emptyDraft();
   }
 
   cancelCreate(): void {
     this.creatingInline = false;
+    this.createSelectedFile = null;
     this.draft = this.emptyDraft();
+  }
+
+  toggleSelection(product: Product): void {
+    if (this.selected?.id === product.id) {
+      this.closeSelection();
+      return;
+    }
+    this.creatingInline = false;
+    this.populateEdit(product);
   }
 
   closeSelection(): void {
     this.selected = null;
-    this.selectedFile = null;
-  }
-
-  select(product: Product): void {
-    this.creatingInline = false;
-    this.selected = product;
-    this.selectedFile = null;
-    this.edit = {
-      sku: product.sku || '',
-      name: product.name || '',
-      category: product.category || '',
-      subcategory: product.subcategory || '',
-      price: Number(product.price || 0),
-      taxPercent: Number(product.taxPercent || 0),
-      discountPercent: Number(product.discountPercent || 0),
-      unit: product.unit || '',
-      description: product.description || ''
-    };
+    this.editSelectedFile = null;
+    this.edit = this.emptyDraft();
   }
 
   createProduct(): void {
@@ -395,6 +589,7 @@ export class AdminProductsComponent {
       this.error = 'SKU, name, category, subcategory, and unit are required.';
       return;
     }
+
     this.creating = true;
     this.catalogApi.createProduct({
       ...this.draft,
@@ -410,16 +605,71 @@ export class AdminProductsComponent {
       discountPercent: Number(this.draft.discountPercent || 0)
     }).subscribe({
       next: (product) => {
-        this.creating = false;
-        this.creatingInline = false;
-        this.message = 'Product added successfully.';
-        this.products = [product, ...this.products];
-        this.productPageIndex = 0;
-        this.select(product);
+        if (this.createSelectedFile) {
+          this.catalogApi.uploadProductImage(product.id, this.createSelectedFile).subscribe({
+            next: (updated) => this.finishCreate(updated),
+            error: () => this.finishCreate(product, 'Product created, but image upload failed.')
+          });
+        } else {
+          this.finishCreate(product);
+        }
       },
       error: (err) => {
         this.creating = false;
         this.error = err?.error?.message || 'Unable to create product.';
+      }
+    });
+  }
+
+  saveDetails(): void {
+    if (!this.selected) {
+      return;
+    }
+
+    this.savingDetails = true;
+    this.error = '';
+    this.message = '';
+    this.catalogApi.updateProduct(this.selected.id, {
+      name: this.edit.name,
+      price: Number(this.edit.price),
+      taxPercent: Number(this.edit.taxPercent),
+      discountPercent: Number(this.edit.discountPercent || 0),
+      unit: this.edit.unit,
+      description: this.blankToUndefined(this.edit.description),
+      imageUrl: this.blankToUndefined(this.edit.imageUrl)
+    }).subscribe({
+      next: (updated) => {
+        this.savingDetails = false;
+        this.message = 'Product updated successfully.';
+        this.populateEdit(updated);
+        this.reload();
+      },
+      error: (err) => {
+        this.savingDetails = false;
+        this.error = err?.error?.message || 'Unable to update product.';
+      }
+    });
+  }
+
+  uploadEditImage(): void {
+    if (!this.selected || !this.editSelectedFile) {
+      return;
+    }
+
+    this.savingImage = true;
+    this.error = '';
+    this.message = '';
+    this.catalogApi.uploadProductImage(this.selected.id, this.editSelectedFile).subscribe({
+      next: (updated) => {
+        this.savingImage = false;
+        this.editSelectedFile = null;
+        this.message = 'Image uploaded successfully.';
+        this.populateEdit(updated);
+        this.reload();
+      },
+      error: (err) => {
+        this.savingImage = false;
+        this.error = err?.error?.message || 'Unable to upload image.';
       }
     });
   }
@@ -430,6 +680,7 @@ export class AdminProductsComponent {
     if (!confirm(`Delete product ${product.sku}?`)) {
       return;
     }
+
     this.deletingId = product.id;
     this.catalogApi.deleteProduct(product.id).subscribe({
       next: () => {
@@ -438,7 +689,7 @@ export class AdminProductsComponent {
         this.products = this.products.filter(existing => existing.id !== product.id);
         this.ensureValidPage();
         if (this.selected?.id === product.id) {
-          this.selected = null;
+          this.closeSelection();
         }
       },
       error: (err) => {
@@ -446,6 +697,16 @@ export class AdminProductsComponent {
         this.error = err?.error?.message || 'Unable to delete product.';
       }
     });
+  }
+
+  onEditFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.editSelectedFile = input.files && input.files.length > 0 ? input.files[0] : null;
+  }
+
+  onCreateFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.createSelectedFile = input.files && input.files.length > 0 ? input.files[0] : null;
   }
 
   pagedProducts(): Product[] {
@@ -466,60 +727,31 @@ export class AdminProductsComponent {
     return `Showing ${start}-${end} of ${total}`;
   }
 
-  saveDetails(): void {
-    if (!this.selected) {
-      return;
-    }
-    this.savingDetails = true;
-    this.error = '';
-    this.message = '';
-    this.catalogApi.updateProduct(this.selected.id, {
-      name: this.edit.name,
-      price: Number(this.edit.price),
-      taxPercent: Number(this.edit.taxPercent),
-      discountPercent: Number(this.edit.discountPercent || 0),
-      unit: this.edit.unit,
-      description: this.edit.description,
-      imageUrl: this.selected.imageUrl
-    }).subscribe({
-      next: (updated) => {
-        this.savingDetails = false;
-        this.message = 'Product updated successfully.';
-        this.selected = updated;
-        this.reload();
-      },
-      error: (err) => {
-        this.savingDetails = false;
-        this.error = err?.error?.message || 'Unable to update product.';
-      }
-    });
+  private populateEdit(product: Product): void {
+    this.selected = product;
+    this.editSelectedFile = null;
+    this.edit = {
+      sku: product.sku || '',
+      name: product.name || '',
+      category: product.category || '',
+      subcategory: product.subcategory || '',
+      price: Number(product.price || 0),
+      discountPercent: Number(product.discountPercent || 0),
+      taxPercent: Number(product.taxPercent || 0),
+      unit: product.unit || '',
+      description: product.description || '',
+      imageUrl: product.imageUrl || ''
+    };
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.selectedFile = input.files && input.files.length > 0 ? input.files[0] : null;
-  }
-
-  uploadImage(): void {
-    if (!this.selected || !this.selectedFile) {
-      return;
-    }
-    this.savingImage = true;
-    this.error = '';
-    this.message = '';
-    this.catalogApi.uploadProductImage(this.selected.id, this.selectedFile).subscribe({
-      next: (updated) => {
-        this.savingImage = false;
-        this.message = 'Image uploaded successfully.';
-        this.selected = updated;
-        this.selectedFile = null;
-        this.reload();
-      },
-      error: (err) => {
-        this.savingImage = false;
-        this.error = err?.error?.message || 'Unable to upload image.';
-      }
-    });
+  private finishCreate(product: Product, message = 'Product added successfully.'): void {
+    this.creating = false;
+    this.creatingInline = false;
+    this.createSelectedFile = null;
+    this.message = message;
+    this.products = [product, ...this.products];
+    this.productPageIndex = 0;
+    this.populateEdit(product);
   }
 
   private emptyDraft(): ProductCreateRequest {

@@ -1,10 +1,10 @@
-import {Component, inject} from '@angular/core';
+import {Component, ElementRef, ViewChild, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
 import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
-import {MatTabsModule} from '@angular/material/tabs';
+import {MatTabChangeEvent, MatTabsModule} from '@angular/material/tabs';
 import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
 @Component({
@@ -30,31 +30,35 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
       </div>
     </div>
 
-    <div class="filters">
-      <label>
-        History From
-        <input type="date" [(ngModel)]="historyFromDate" (ngModelChange)="resetHistoryPage()" />
-      </label>
-      <label>
-        History To
-        <input type="date" [(ngModel)]="historyToDate" (ngModelChange)="resetHistoryPage()" />
-      </label>
-      <label>
-        Active Sort
-        <select [(ngModel)]="activeSort" (ngModelChange)="resetActivePage()">
-          <option value="price-desc">Highest price</option>
-          <option value="price-asc">Lowest price</option>
-          <option value="date-desc">Newest first</option>
-          <option value="date-asc">Oldest first</option>
-        </select>
-      </label>
-      <button mat-stroked-button (click)="reload()">Refresh</button>
-      <button mat-button (click)="clearFilters()">Clear Filters</button>
-    </div>
-
-    <mat-tab-group>
+    <div #tabAnchor></div>
+    <mat-tab-group (selectedTabChange)="onTabChange($event)">
       <mat-tab [label]="'Active Orders (' + activeOrders().length + ')'">
         <div class="tab-pane">
+          <div class="tab-tools">
+            <div class="inline-filters">
+              <label>
+                From
+                <input type="date" [(ngModel)]="activeFromDate" (ngModelChange)="resetActivePage()" />
+              </label>
+              <label>
+                To
+                <input type="date" [(ngModel)]="activeToDate" (ngModelChange)="resetActivePage()" />
+              </label>
+              <label>
+                Sort
+                <select [(ngModel)]="activeSort" (ngModelChange)="resetActivePage()">
+                  <option value="price-desc">Highest price</option>
+                  <option value="price-asc">Lowest price</option>
+                  <option value="date-desc">Newest first</option>
+                  <option value="date-asc">Oldest first</option>
+                </select>
+              </label>
+            </div>
+            <div class="tool-actions">
+              <button mat-stroked-button (click)="reload()">Refresh</button>
+              <button mat-button (click)="clearActiveFilters()">Clear</button>
+            </div>
+          </div>
           <p *ngIf="loading">Loading orders...</p>
           <p *ngIf="!loading && activeOrders().length === 0">No active orders found.</p>
           <div class="page-note" *ngIf="!loading && activeOrders().length > 0">{{pageLabel('active', activeOrders().length)}}</div>
@@ -103,6 +107,21 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
       <mat-tab [label]="'Rejected Orders (' + rejectedOrders().length + ')'">
         <div class="tab-pane">
+          <div class="tab-tools">
+            <div class="inline-filters">
+              <label>
+                From
+                <input type="date" [(ngModel)]="rejectedFromDate" (ngModelChange)="resetRejectedPage()" />
+              </label>
+              <label>
+                To
+                <input type="date" [(ngModel)]="rejectedToDate" (ngModelChange)="resetRejectedPage()" />
+              </label>
+            </div>
+            <div class="tool-actions">
+              <button mat-button (click)="clearRejectedFilters()">Clear</button>
+            </div>
+          </div>
           <p *ngIf="!loading && rejectedOrders().length === 0">No rejected orders found.</p>
           <div class="page-note" *ngIf="!loading && rejectedOrders().length > 0">{{pageLabel('rejected', rejectedOrders().length)}}</div>
           <mat-card class="order rejected" *ngFor="let order of pagedRejectedOrders()">
@@ -152,6 +171,22 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
       <mat-tab [label]="'Order History (' + historyOrders().length + ')'">
         <div class="tab-pane">
+          <div class="tab-tools">
+            <div class="inline-filters">
+              <label>
+                From
+                <input type="date" [(ngModel)]="historyFromDate" (ngModelChange)="resetHistoryPage()" />
+              </label>
+              <label>
+                To
+                <input type="date" [(ngModel)]="historyToDate" (ngModelChange)="resetHistoryPage()" />
+              </label>
+            </div>
+            <div class="tool-actions">
+              <button mat-stroked-button (click)="reload()">Refresh</button>
+              <button mat-button (click)="clearHistoryFilters()">Clear</button>
+            </div>
+          </div>
           <p *ngIf="!loading && historyOrders().length === 0">No history orders found.</p>
           <div class="page-note" *ngIf="!loading && historyOrders().length > 0">{{pageLabel('history', historyOrders().length)}}</div>
           <mat-card class="order history" *ngFor="let order of pagedHistoryOrders()">
@@ -185,14 +220,16 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
   `,
   styles: [`
     .muted { color: #587067; margin-top: -.25rem; }
-    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: .95rem 0 1rem; }
-    .summary-card { background: #f3f7f5; border: 1px solid #d9e4de; border-radius: 14px; padding: .9rem 1rem; display: flex; flex-direction: column; gap: .2rem; }
-    .summary-card strong { font-size: 1.4rem; line-height: 1; color: #17352b; }
-    .summary-card span { color: #587067; }
-    .filters { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; margin: .8rem 0 1rem; }
-    .filters label { display: flex; flex-direction: column; gap: .3rem; color: #4f655c; font-size: .92rem; }
-    .filters input, .filters select { min-width: 160px; padding: .5rem .6rem; border: 1px solid #cbd8d2; border-radius: 8px; }
-    .tab-pane { padding-top: 1rem; }
+    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin: .7rem 0 .85rem; }
+    .summary-card { background: #f3f7f5; border: 1px solid #d9e4de; border-radius: 12px; padding: .55rem .75rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .summary-card strong { font-size: 1.1rem; line-height: 1; color: #17352b; }
+    .summary-card span { color: #587067; font-size: .88rem; }
+    .tab-pane { padding-top: .8rem; }
+    .tab-tools { display: flex; justify-content: space-between; align-items: end; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem; }
+    .inline-filters { display: flex; gap: .65rem; flex-wrap: wrap; align-items: end; }
+    .inline-filters label { display: flex; flex-direction: column; gap: .28rem; color: #4f655c; font-size: .9rem; }
+    .inline-filters input, .inline-filters select { min-width: 140px; padding: .46rem .55rem; border: 1px solid #cbd8d2; border-radius: 8px; }
+    .tool-actions { display: flex; gap: .45rem; flex-wrap: wrap; }
     .page-note { margin-bottom: .7rem; color: #587067; font-size: .92rem; }
     .order { border-radius: 14px; margin-bottom: .85rem; }
     .order.delayed { border: 2px solid #f59e0b; background: #fff9ec; }
@@ -210,6 +247,10 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
     .error { color: #b42318; margin-top: .75rem; }
     @media (max-width: 860px) {
       .summary { grid-template-columns: 1fr; }
+      .summary-card { align-items: flex-start; flex-direction: column; gap: .15rem; }
+      .tab-tools { align-items: stretch; }
+      .inline-filters, .tool-actions { width: 100%; }
+      .inline-filters label { flex: 1 1 160px; }
       .status-row { grid-template-columns: 1fr; }
       .head, .line { flex-direction: column; align-items: flex-start; }
       mat-paginator { margin-top: .75rem; }
@@ -218,11 +259,16 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 })
 export class AdminOrdersComponent {
   private orderApi = inject(OrderApiService);
+  @ViewChild('tabAnchor') private tabAnchor?: ElementRef<HTMLDivElement>;
 
   orders: Order[] = [];
   loading = true;
   error = '';
   busyRef = '';
+  activeFromDate = '';
+  activeToDate = '';
+  rejectedFromDate = '';
+  rejectedToDate = '';
   historyFromDate = '';
   historyToDate = '';
   activeSort: 'price-desc' | 'price-asc' | 'date-desc' | 'date-asc' = 'price-desc';
@@ -261,21 +307,40 @@ export class AdminOrdersComponent {
   }
 
   clearFilters(): void {
-    this.historyFromDate = '';
-    this.historyToDate = '';
+    this.clearActiveFilters();
+    this.clearRejectedFilters();
+    this.clearHistoryFilters();
+  }
+
+  clearActiveFilters(): void {
+    this.activeFromDate = '';
+    this.activeToDate = '';
     this.activeSort = 'price-desc';
     this.resetActivePage();
+  }
+
+  clearRejectedFilters(): void {
+    this.rejectedFromDate = '';
+    this.rejectedToDate = '';
+    this.resetRejectedPage();
+  }
+
+  clearHistoryFilters(): void {
+    this.historyFromDate = '';
+    this.historyToDate = '';
     this.resetHistoryPage();
   }
 
   activeOrders(): Order[] {
     return this.sortActive(this.orders.filter(order =>
       ['PENDING', 'COD_PENDING', 'PENDING_PAYMENT', 'CONFIRMED', 'FULFILLING', 'SHIPPED'].includes(order.status)
-    ));
+    ).filter(order => this.matchesRange(order, this.activeFromDate, this.activeToDate)));
   }
 
   rejectedOrders(): Order[] {
-    return this.orders.filter(order => order.status === 'REJECTED');
+    return this.orders.filter(order => order.status === 'REJECTED')
+      .filter(order => this.matchesRange(order, this.rejectedFromDate, this.rejectedToDate))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   historyOrders(): Order[] {
@@ -305,6 +370,10 @@ export class AdminOrdersComponent {
 
   resetActivePage(): void {
     this.pagination.active.pageIndex = 0;
+  }
+
+  resetRejectedPage(): void {
+    this.pagination.rejected.pageIndex = 0;
   }
 
   resetHistoryPage(): void {
@@ -367,6 +436,12 @@ export class AdminOrdersComponent {
     });
   }
 
+  onTabChange(_: MatTabChangeEvent): void {
+    setTimeout(() => {
+      this.tabAnchor?.nativeElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 0);
+  }
+
   private sortActive(orders: Order[]): Order[] {
     const sorted = [...orders];
     switch (this.activeSort) {
@@ -402,15 +477,19 @@ export class AdminOrdersComponent {
   }
 
   private matchesHistoryRange(order: Order): boolean {
+    return this.matchesRange(order, this.historyFromDate, this.historyToDate);
+  }
+
+  private matchesRange(order: Order, fromDate: string, toDate: string): boolean {
     const created = new Date(order.createdAt);
-    if (this.historyFromDate) {
-      const from = new Date(`${this.historyFromDate}T00:00:00`);
+    if (fromDate) {
+      const from = new Date(`${fromDate}T00:00:00`);
       if (created < from) {
         return false;
       }
     }
-    if (this.historyToDate) {
-      const to = new Date(`${this.historyToDate}T23:59:59`);
+    if (toDate) {
+      const to = new Date(`${toDate}T23:59:59`);
       if (created > to) {
         return false;
       }
