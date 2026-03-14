@@ -13,202 +13,213 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
   imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
   template: `
     <h3>Admin Product Management</h3>
-    <p class="muted">Use a compact list view, then open the detail panel only for the product you want to edit.</p>
+    <p class="muted">Keep the list compact on the left and all product fields in the side panel.</p>
 
-    <mat-card class="section-card">
-      <div class="toolbar">
-        <input class="search" type="text" placeholder="Search by name, SKU, or category" [(ngModel)]="query" (keyup.enter)="reload()" />
-        <button mat-stroked-button (click)="reload()">Search</button>
-        <button mat-button (click)="clear()">Clear</button>
-      </div>
-      <div class="page-note" *ngIf="!loading && (products.length > 0 || creatingInline)">{{productPageLabel()}}</div>
+    <div class="layout">
+      <mat-card class="section-card">
+        <div class="toolbar">
+          <input class="search" type="text" placeholder="Search by name, SKU, or category" [(ngModel)]="query" (keyup.enter)="reload()" />
+          <button mat-stroked-button (click)="reload()">Search</button>
+          <button mat-button (click)="clear()">Clear</button>
+        </div>
+        <div class="page-note" *ngIf="!loading && (products.length > 0 || creatingInline)">{{productPageLabel()}}</div>
 
-      <div class="table-shell">
-        <table class="table desktop-table" *ngIf="products.length > 0 || creatingInline">
-          <thead>
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th class="act-col">Action</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let p of pagedProducts()"
-              [class.selected]="selected?.id === p.id"
-              (click)="select(p)">
-            <td>{{p.name}}</td>
-            <td>{{p.category}}</td>
-            <td>{{p.price | currency:'EUR'}}</td>
-            <td class="act-col actions" (click)="$event.stopPropagation()">
-              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
-            </td>
-          </tr>
-          <tr *ngIf="creatingInline" class="new-row selected">
-            <td><input [(ngModel)]="draft.name" placeholder="Product name" /></td>
-            <td><input [(ngModel)]="draft.category" placeholder="Category" /></td>
-            <td><input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" /></td>
-            <td class="act-col actions">
-              <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-                {{creating ? 'Saving...' : 'Save'}}
-              </button>
-              <button mat-button (click)="cancelCreate()">Cancel</button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
+        <div class="table-shell">
+          <table class="table desktop-table" *ngIf="products.length > 0 || creatingInline">
+            <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th class="act-col">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let p of pagedProducts()"
+                [class.selected]="selected?.id === p.id"
+                (click)="select(p)">
+              <td>{{p.name}}</td>
+              <td>{{p.category}}</td>
+              <td>{{p.price | currency:'EUR'}}</td>
+              <td class="act-col actions" (click)="$event.stopPropagation()">
+                <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+              </td>
+            </tr>
+            <tr *ngIf="creatingInline" class="new-row selected">
+              <td><input [(ngModel)]="draft.name" placeholder="Product name" /></td>
+              <td><input [(ngModel)]="draft.category" placeholder="Category" /></td>
+              <td><input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" /></td>
+              <td class="act-col actions">
+                <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                  {{creating ? 'Saving...' : 'Save'}}
+                </button>
+                <button mat-button (click)="cancelCreate()">Cancel</button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
 
-        <div class="mobile-list" *ngIf="products.length > 0 || creatingInline">
-          <article class="mobile-product"
-                   *ngFor="let p of pagedProducts()"
-                   [class.selected]="selected?.id === p.id"
-                   (click)="select(p)">
-            <div class="mobile-head">
-              <div>
-                <strong>{{p.name}}</strong>
-                <p>{{p.category}}</p>
+          <div class="mobile-list" *ngIf="products.length > 0 || creatingInline">
+            <article class="mobile-product"
+                     *ngFor="let p of pagedProducts()"
+                     [class.selected]="selected?.id === p.id"
+                     (click)="select(p)">
+              <div class="mobile-head">
+                <div>
+                  <strong>{{p.name}}</strong>
+                  <p>{{p.category}}</p>
+                </div>
+                <strong>{{p.price | currency:'EUR'}}</strong>
               </div>
-              <strong>{{p.price | currency:'EUR'}}</strong>
-            </div>
-            <div class="mobile-actions" (click)="$event.stopPropagation()">
-              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
-            </div>
-          </article>
+              <div class="mobile-actions" (click)="$event.stopPropagation()">
+                <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+              </div>
+            </article>
 
-          <article class="mobile-product selected new-row" *ngIf="creatingInline">
-            <label>
-              Name
-              <input [(ngModel)]="draft.name" placeholder="Product name" />
-            </label>
-            <label>
-              Category
-              <input [(ngModel)]="draft.category" placeholder="Category" />
-            </label>
-            <label>
-              Price
-              <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" />
-            </label>
-            <div class="mobile-actions">
-              <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-                {{creating ? 'Saving...' : 'Save'}}
-              </button>
-              <button mat-button (click)="cancelCreate()">Cancel</button>
-            </div>
-          </article>
+            <article class="mobile-product selected new-row" *ngIf="creatingInline">
+              <label>
+                Name
+                <input [(ngModel)]="draft.name" placeholder="Product name" />
+              </label>
+              <label>
+                Category
+                <input [(ngModel)]="draft.category" placeholder="Category" />
+              </label>
+              <label>
+                Price
+                <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" />
+              </label>
+              <div class="mobile-actions">
+                <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                  {{creating ? 'Saving...' : 'Save'}}
+                </button>
+                <button mat-button (click)="cancelCreate()">Cancel</button>
+              </div>
+            </article>
+          </div>
+
+          <p *ngIf="!loading && products.length === 0 && !creatingInline" class="blank">No products found.</p>
+          <p *ngIf="loading" class="blank">Loading products...</p>
         </div>
 
-        <p *ngIf="!loading && products.length === 0 && !creatingInline" class="blank">No products found.</p>
-        <p *ngIf="loading" class="blank">Loading products...</p>
-      </div>
-
-      <div class="table-footer">
-        <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add Product</button>
-      </div>
-
-      <mat-paginator *ngIf="products.length > 0"
-                     [length]="products.length"
-                     [pageIndex]="pageIndex"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[6, 8, 12]"
-                     (page)="onPage($event)">
-      </mat-paginator>
-    </mat-card>
-
-    <mat-card class="editor-card" *ngIf="selected || creatingInline">
-      <div class="editor-head">
-        <div>
-          <h4>{{creatingInline ? 'New Product Details' : ('Edit Product: ' + selected!.name)}}</h4>
-          <p class="editor-hint">Only the selected row opens full details, so the list stays compact.</p>
+        <div class="table-footer">
+          <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add Product</button>
         </div>
-        <button mat-button *ngIf="selected" (click)="closeSelection()">Close</button>
-      </div>
 
-      <div class="grid" *ngIf="creatingInline">
-        <label>SKU
-          <input [(ngModel)]="draft.sku" />
-        </label>
-        <label>Name
-          <input [(ngModel)]="draft.name" />
-        </label>
-        <label>Category
-          <input [(ngModel)]="draft.category" />
-        </label>
-        <label>Subcategory
-          <input [(ngModel)]="draft.subcategory" />
-        </label>
-        <label>Price (EUR)
-          <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
-        </label>
-        <label>Tax (%)
-          <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
-        </label>
-        <label>Discount (%)
-          <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
-        </label>
-        <label>Unit
-          <input [(ngModel)]="draft.unit" />
-        </label>
-        <label class="full">Description
-          <textarea rows="3" [(ngModel)]="draft.description"></textarea>
-        </label>
-        <label class="full">Image URL
-          <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
-        </label>
-      </div>
+        <mat-paginator *ngIf="products.length > 0"
+                       [length]="products.length"
+                       [pageIndex]="pageIndex"
+                       [pageSize]="pageSize"
+                       [pageSizeOptions]="[6, 8, 12]"
+                       (page)="onPage($event)">
+        </mat-paginator>
+      </mat-card>
 
-      <div class="grid" *ngIf="selected && !creatingInline">
-        <label>SKU
-          <input [(ngModel)]="edit.sku" disabled />
-        </label>
-        <label>Name
-          <input [(ngModel)]="edit.name" />
-        </label>
-        <label>Category
-          <input [(ngModel)]="edit.category" disabled />
-        </label>
-        <label>Subcategory
-          <input [(ngModel)]="edit.subcategory" disabled />
-        </label>
-        <label>Price (EUR)
-          <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
-        </label>
-        <label>Tax (%)
-          <input type="number" min="0" step="0.01" [(ngModel)]="edit.taxPercent" />
-        </label>
-        <label>Discount (%)
-          <input type="number" min="0" step="0.01" [(ngModel)]="edit.discountPercent" />
-        </label>
-        <label>Unit
-          <input [(ngModel)]="edit.unit" />
-        </label>
-        <label class="full">Description
-          <textarea rows="3" [(ngModel)]="edit.description"></textarea>
-        </label>
-      </div>
+      <mat-card class="editor-card">
+        <div class="editor-head">
+          <div>
+            <h4>{{creatingInline ? 'New Product Details' : (selected ? ('Edit Product: ' + selected.name) : 'Product Details')}}</h4>
+            <p class="editor-hint" *ngIf="!selected && !creatingInline">Select a row or click Add Product to edit all fields here.</p>
+            <p class="editor-hint" *ngIf="selected || creatingInline">All create/edit fields stay in this side panel so the page does not stretch vertically.</p>
+          </div>
+          <button mat-button *ngIf="selected" (click)="closeSelection()">Close</button>
+        </div>
 
-      <div class="editor-actions" *ngIf="creatingInline">
-        <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-          {{creating ? 'Saving...' : 'Save Product'}}
-        </button>
-        <button mat-button (click)="cancelCreate()">Cancel</button>
-      </div>
+        <div class="placeholder" *ngIf="!selected && !creatingInline">
+          Pick a product from the list, or click `Add Product` to start a new entry.
+        </div>
 
-      <div class="image-zone" *ngIf="selected && !creatingInline">
-        <img [src]="selected.imageUrl || 'https://placehold.co/220x140'" alt="product image" />
-        <div>
-          <p class="path">{{selected.imageUrl || 'No image set'}}</p>
-          <input type="file" accept="image/*" (change)="onFileSelected($event)" />
+        <div *ngIf="creatingInline">
+          <div class="grid">
+            <label>SKU
+              <input [(ngModel)]="draft.sku" />
+            </label>
+            <label>Name
+              <input [(ngModel)]="draft.name" />
+            </label>
+            <label>Category
+              <input [(ngModel)]="draft.category" />
+            </label>
+            <label>Subcategory
+              <input [(ngModel)]="draft.subcategory" />
+            </label>
+            <label>Price (EUR)
+              <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
+            </label>
+            <label>Tax (%)
+              <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
+            </label>
+            <label>Discount (%)
+              <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
+            </label>
+            <label>Unit
+              <input [(ngModel)]="draft.unit" />
+            </label>
+            <label class="full">Description
+              <textarea rows="3" [(ngModel)]="draft.description"></textarea>
+            </label>
+            <label class="full">Image URL
+              <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
+            </label>
+          </div>
+
           <div class="editor-actions">
-            <button mat-stroked-button (click)="uploadImage()" [disabled]="!selectedFile || savingImage">
-              {{savingImage ? 'Uploading...' : 'Upload Image'}}
+            <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+              {{creating ? 'Saving...' : 'Save Product'}}
             </button>
-            <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
-              {{savingDetails ? 'Saving...' : 'Save Changes'}}
-            </button>
+            <button mat-button (click)="cancelCreate()">Cancel</button>
           </div>
         </div>
-      </div>
-    </mat-card>
+
+        <div *ngIf="selected && !creatingInline">
+          <div class="grid">
+            <label>SKU
+              <input [(ngModel)]="edit.sku" disabled />
+            </label>
+            <label>Name
+              <input [(ngModel)]="edit.name" />
+            </label>
+            <label>Category
+              <input [(ngModel)]="edit.category" disabled />
+            </label>
+            <label>Subcategory
+              <input [(ngModel)]="edit.subcategory" disabled />
+            </label>
+            <label>Price (EUR)
+              <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
+            </label>
+            <label>Tax (%)
+              <input type="number" min="0" step="0.01" [(ngModel)]="edit.taxPercent" />
+            </label>
+            <label>Discount (%)
+              <input type="number" min="0" step="0.01" [(ngModel)]="edit.discountPercent" />
+            </label>
+            <label>Unit
+              <input [(ngModel)]="edit.unit" />
+            </label>
+            <label class="full">Description
+              <textarea rows="3" [(ngModel)]="edit.description"></textarea>
+            </label>
+          </div>
+
+          <div class="image-zone">
+            <img [src]="selected.imageUrl || 'https://placehold.co/220x140'" alt="product image" />
+            <div>
+              <p class="path">{{selected.imageUrl || 'No image set'}}</p>
+              <input type="file" accept="image/*" (change)="onFileSelected($event)" />
+              <div class="editor-actions">
+                <button mat-stroked-button (click)="uploadImage()" [disabled]="!selectedFile || savingImage">
+                  {{savingImage ? 'Uploading...' : 'Upload Image'}}
+                </button>
+                <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
+                  {{savingDetails ? 'Saving...' : 'Save Changes'}}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </div>
 
     <p class="error" *ngIf="error">{{error}}</p>
     <p class="ok" *ngIf="message">{{message}}</p>
@@ -216,6 +227,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
   styles: [`
     :host { display: block; overflow-x: hidden; }
     .muted { color: #587067; margin-top: -.25rem; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .9fr); gap: 1rem; align-items: start; }
     .section-card, .editor-card { border-radius: 14px; margin-top: .8rem; overflow: hidden; }
     .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; flex-wrap: wrap; }
     .page-note { margin: -.2rem 0 .8rem; color: #587067; font-size: .92rem; }
@@ -243,6 +255,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     .editor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .9rem; }
     .editor-head h4 { margin: 0; }
     .editor-hint { margin: .2rem 0 0; color: #60766c; }
+    .placeholder { border: 1px dashed #cfddd6; border-radius: 12px; padding: 1rem; color: #5f756a; background: #fafdfb; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
     .grid label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #456458; }
     .grid input, .grid textarea { padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; }
@@ -250,11 +263,12 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     .image-zone { margin-top: .8rem; display: grid; grid-template-columns: 220px 1fr; gap: .9rem; align-items: start; }
     .image-zone img { width: 220px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #d8e4de; }
     .path { font-size: .8rem; color: #6f8278; margin: 0 0 .5rem; word-break: break-all; }
-    .editor-actions { margin-top: .9rem; display: flex; gap: .6rem; flex-wrap: wrap; }
+    .editor-actions { margin-top: .9rem; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
     mat-paginator { margin-top: .8rem; border: 1px solid #e2ebe6; border-radius: 12px; background: #fbfdfc; }
     .error { color: #b42318; margin-top: .6rem; }
     .ok { color: #126b2f; margin-top: .6rem; }
-    @media (max-width: 980px) {
+    @media (max-width: 1160px) {
+      .layout { grid-template-columns: 1fr; }
       .grid { grid-template-columns: 1fr; }
       .image-zone { grid-template-columns: 1fr; }
     }
@@ -262,10 +276,10 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
       .search { max-width: none; width: 100%; }
       .desktop-table { display: none; }
       .mobile-list { display: grid; }
-      .table-shell { overflow: visible; }
       .table-footer { justify-content: stretch; }
       .table-footer button { width: 100%; }
       .editor-head { flex-direction: column; }
+      .editor-actions button { width: 100%; }
     }
   `]
 })
