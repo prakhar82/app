@@ -22,6 +22,14 @@ export interface AdminCreateUserRequest {
   role: 'ADMIN' | 'USER';
 }
 
+export interface AdminUpdateUserRequest {
+  name?: string;
+  phone?: string;
+  password?: string;
+  role?: 'ADMIN' | 'USER';
+  status?: 'ACTIVE' | 'INACTIVE';
+}
+
 @Injectable({providedIn: 'root'})
 export class AdminUserApiService {
   private readonly http = inject(HttpClient);
@@ -32,6 +40,10 @@ export class AdminUserApiService {
 
   createUser(request: AdminCreateUserRequest): Observable<AdminUser> {
     return this.http.post<AdminUser>(`${environment.apiBaseUrl}/identity/admin/users`, request);
+  }
+
+  updateUser(id: number, request: AdminUpdateUserRequest): Observable<AdminUser> {
+    return this.http.patch<AdminUser>(`${environment.apiBaseUrl}/identity/admin/users/${id}`, request);
   }
 
   deleteUser(id: number): Observable<void> {

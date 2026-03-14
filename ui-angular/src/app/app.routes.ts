@@ -34,6 +34,7 @@ export const routes: Routes = [
       {path: 'products/:id', component: ProductDetailComponent},
       {path: 'cart', component: CartComponent},
       {path: 'orders', component: OrdersComponent},
+      {path: 'account', component: ProfileComponent},
       {path: 'profile', component: ProfileComponent},
       {path: 'checkout', component: CheckoutComponent},
       {path: '', pathMatch: 'full', redirectTo: 'dashboard'}

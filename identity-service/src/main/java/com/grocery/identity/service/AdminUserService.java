@@ -3,6 +3,7 @@ package com.grocery.identity.service;
 import com.grocery.common.api.DomainException;
 import com.grocery.identity.domain.UserAccount;
 import com.grocery.identity.dto.AdminCreateUserRequest;
+import com.grocery.identity.dto.AdminUpdateUserRequest;
 import com.grocery.identity.dto.AdminUserResponse;
 import com.grocery.identity.repo.UserAccountRepository;
 import com.grocery.identity.repo.UserAddressRepository;
@@ -69,6 +70,40 @@ public class AdminUserService {
         user.setRole(request.role() == null || request.role().isBlank() ? "USER" : request.role());
         user.setGoogleVerified(false);
         user.setStatus("ACTIVE");
+
+        UserAccount saved = userAccountRepository.save(user);
+        return new AdminUserResponse(
+                saved.getId(),
+                saved.getEmail(),
+                saved.getName(),
+                saved.getPhone(),
+                saved.getRole(),
+                saved.getStatus(),
+                saved.isGoogleVerified(),
+                saved.getCreatedAt());
+    }
+
+    @Transactional
+    public AdminUserResponse updateUser(Long id, AdminUpdateUserRequest request, String authenticatedEmail) {
+        UserAccount user = userAccountRepository.findById(id)
+                .orElseThrow(() -> new DomainException("USER_NOT_FOUND", "User not found"));
+
+        if (authenticatedEmail != null && authenticatedEmail.equalsIgnoreCase(user.getEmail())
+                && request.role() != null && !"ADMIN".equalsIgnoreCase(request.role().trim())) {
+            throw new DomainException("SELF_ROLE_CHANGE_BLOCKED", "Admin cannot remove admin access from the currently logged-in account");
+        }
+
+        user.setName(blankToNull(request.name()));
+        user.setPhone(blankToNull(request.phone()));
+        if (request.password() != null && !request.password().trim().isEmpty()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password().trim()));
+        }
+        if (request.role() != null && !request.role().trim().isEmpty()) {
+            user.setRole(request.role().trim().toUpperCase());
+        }
+        if (request.status() != null && !request.status().trim().isEmpty()) {
+            user.setStatus(request.status().trim().toUpperCase());
+        }
 
         UserAccount saved = userAccountRepository.save(user);
         return new AdminUserResponse(

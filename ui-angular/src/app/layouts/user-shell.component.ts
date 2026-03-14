@@ -25,7 +25,7 @@ import {logout} from '../state/auth/auth.actions';
         <a mat-button routerLink="/app/products" routerLinkActive #productsRla="routerLinkActive" [routerLinkActiveOptions]="{exact: false}" [class.active-link]="productsRla.isActive">Products</a>
         <a mat-raised-button color="accent" routerLink="/app/cart" routerLinkActive #cartRla="routerLinkActive" [routerLinkActiveOptions]="{exact: true}" [class.active-link]="cartRla.isActive">Cart</a>
         <a mat-button routerLink="/app/orders" routerLinkActive #ordersRla="routerLinkActive" [routerLinkActiveOptions]="{exact: false}" [class.active-link]="ordersRla.isActive">Orders</a>
-        <a mat-button routerLink="/app/profile" routerLinkActive #profileRla="routerLinkActive" [routerLinkActiveOptions]="{exact: false}" [class.active-link]="profileRla.isActive">Profile</a>
+        <a mat-button routerLink="/app/account" routerLinkActive #accountRla="routerLinkActive" [routerLinkActiveOptions]="{exact: false}" [class.active-link]="accountRla.isActive">Account</a>
       </nav>
 
       <button mat-button class="desktop-nav logout-btn" (click)="signOut()">Logout</button>
@@ -37,7 +37,7 @@ import {logout} from '../state/auth/auth.actions';
       <a routerLink="/app/products" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: false}" (click)="closeMenu()">Products</a>
       <a routerLink="/app/cart" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: true}" (click)="closeMenu()">Cart</a>
       <a routerLink="/app/orders" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: false}" (click)="closeMenu()">Orders</a>
-      <a routerLink="/app/profile" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: false}" (click)="closeMenu()">Profile</a>
+      <a routerLink="/app/account" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: false}" (click)="closeMenu()">Account</a>
       <button mat-raised-button color="primary" (click)="signOut()">Logout</button>
     </aside>
 
