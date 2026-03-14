@@ -18,7 +18,6 @@ import {AdminUploadComponent} from './features/admin/upload/admin-upload.compone
 import {AdminInventoryComponent} from './features/admin/inventory/admin-inventory.component';
 import {AdminOrdersComponent} from './features/admin/orders/admin-orders.component';
 import {AdminUsersComponent} from './features/admin/users/admin-users.component';
-import {AdminAccountComponent} from './features/admin/account/admin-account.component';
 
 export const routes: Routes = [
   {path: 'login', component: LoginComponent},
@@ -34,7 +33,6 @@ export const routes: Routes = [
       {path: 'products/:id', component: ProductDetailComponent},
       {path: 'cart', component: CartComponent},
       {path: 'orders', component: OrdersComponent},
-      {path: 'account', component: ProfileComponent},
       {path: 'profile', component: ProfileComponent},
       {path: 'checkout', component: CheckoutComponent},
       {path: '', pathMatch: 'full', redirectTo: 'dashboard'}
@@ -50,7 +48,6 @@ export const routes: Routes = [
       {path: 'products', component: AdminProductsComponent},
       {path: 'upload', component: AdminUploadComponent},
       {path: 'inventory', component: AdminInventoryComponent},
-      {path: 'account', component: AdminAccountComponent},
       {path: 'users', component: AdminUsersComponent},
       {path: 'orders', component: AdminOrdersComponent},
       {path: '', pathMatch: 'full', redirectTo: 'dashboard'}

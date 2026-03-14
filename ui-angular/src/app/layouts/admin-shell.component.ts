@@ -25,7 +25,6 @@ import {logout} from '../state/auth/auth.actions';
         <a mat-button routerLink="/admin/products" routerLinkActive="active-link">Products</a>
         <a mat-button routerLink="/admin/upload" routerLinkActive="active-link">Upload</a>
         <a mat-button routerLink="/admin/inventory" routerLinkActive="active-link">Inventory</a>
-        <a mat-button routerLink="/admin/account" routerLinkActive="active-link">Account</a>
         <a mat-button routerLink="/admin/users" routerLinkActive="active-link">Users</a>
         <a mat-button routerLink="/admin/orders" routerLinkActive="active-link">Orders</a>
       </nav>
@@ -39,7 +38,6 @@ import {logout} from '../state/auth/auth.actions';
       <a routerLink="/admin/products" routerLinkActive="drawer-link-active" (click)="closeMenu()">Products</a>
       <a routerLink="/admin/upload" routerLinkActive="drawer-link-active" (click)="closeMenu()">Upload</a>
       <a routerLink="/admin/inventory" routerLinkActive="drawer-link-active" (click)="closeMenu()">Inventory</a>
-      <a routerLink="/admin/account" routerLinkActive="drawer-link-active" (click)="closeMenu()">Account</a>
       <a routerLink="/admin/users" routerLinkActive="drawer-link-active" (click)="closeMenu()">Users</a>
       <a routerLink="/admin/orders" routerLinkActive="drawer-link-active" (click)="closeMenu()">Orders</a>
       <button mat-raised-button color="primary" (click)="signOut()">Logout</button>
