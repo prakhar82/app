@@ -1,5 +1,5 @@
 import {Component, inject} from '@angular/core';
-import {CommonModule} from '@angular/common';
+import {CommonModule, CurrencyPipe} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
@@ -10,7 +10,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
 @Component({
   selector: 'app-admin-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
+  imports: [CommonModule, CurrencyPipe, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
   template: `
     <h3>Admin Product Management</h3>
     <p class="muted">Keep the list compact on the left and all product fields in the side panel.</p>
@@ -108,8 +108,8 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
 
         <mat-paginator *ngIf="products.length > 0"
                        [length]="products.length"
-                       [pageIndex]="pageIndex"
-                       [pageSize]="pageSize"
+                       [pageIndex]="productPageIndex"
+                       [pageSize]="productPageSize"
                        [pageSizeOptions]="[6, 8, 12]"
                        (page)="onPage($event)">
         </mat-paginator>
@@ -126,7 +126,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
         </div>
 
         <div class="placeholder" *ngIf="!selected && !creatingInline">
-          Pick a product from the list, or click `Add Product` to start a new entry.
+          Pick a product from the list, or click Add Product to start a new entry.
         </div>
 
         <div *ngIf="creatingInline">
@@ -299,8 +299,8 @@ export class AdminProductsComponent {
   message = '';
   query = '';
   selectedFile: File | null = null;
-  pageIndex = 0;
-  pageSize = 8;
+  productPageIndex = 0;
+  productPageSize = 8;
   draft: ProductCreateRequest = this.emptyDraft();
   edit = {
     sku: '',
@@ -326,7 +326,7 @@ export class AdminProductsComponent {
     this.loading = true;
     this.error = '';
     this.message = '';
-    this.pageIndex = 0;
+    this.productPageIndex = 0;
     this.catalogApi.listAdminProducts(this.query).subscribe({
       next: (products) => {
         this.products = products;
@@ -414,7 +414,7 @@ export class AdminProductsComponent {
         this.creatingInline = false;
         this.message = 'Product added successfully.';
         this.products = [product, ...this.products];
-        this.pageIndex = 0;
+        this.productPageIndex = 0;
         this.select(product);
       },
       error: (err) => {
@@ -450,19 +450,19 @@ export class AdminProductsComponent {
 
   pagedProducts(): Product[] {
     this.ensureValidPage();
-    const start = this.pageIndex * this.pageSize;
-    return this.products.slice(start, start + this.pageSize);
+    const start = this.productPageIndex * this.productPageSize;
+    return this.products.slice(start, start + this.productPageSize);
   }
 
   onPage(event: PageEvent): void {
-    this.pageIndex = event.pageIndex;
-    this.pageSize = event.pageSize;
+    this.productPageIndex = event.pageIndex;
+    this.productPageSize = event.pageSize;
   }
 
   productPageLabel(): string {
     const total = this.products.length;
-    const start = total === 0 ? 0 : this.pageIndex * this.pageSize + 1;
-    const end = Math.min(total, (this.pageIndex + 1) * this.pageSize);
+    const start = total === 0 ? 0 : this.productPageIndex * this.productPageSize + 1;
+    const end = Math.min(total, (this.productPageIndex + 1) * this.productPageSize);
     return `Showing ${start}-${end} of ${total}`;
   }
 
@@ -543,9 +543,9 @@ export class AdminProductsComponent {
   }
 
   private ensureValidPage(): void {
-    const totalPages = Math.max(1, Math.ceil(this.products.length / this.pageSize));
-    if (this.pageIndex >= totalPages) {
-      this.pageIndex = 0;
+    const totalPages = Math.max(1, Math.ceil(this.products.length / this.productPageSize));
+    if (this.productPageIndex >= totalPages) {
+      this.productPageIndex = 0;
     }
   }
 }
