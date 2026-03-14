@@ -31,6 +31,11 @@ From repository root:
   -Branch "main"
 ```
 
+By default, the script now configures:
+
+- `FRONTEND_URL=http://<PUBLIC_IP>:8080`
+- `APP_CORS_ALLOWED_ORIGINS` including localhost plus `http://<PUBLIC_IP>` and `http://<PUBLIC_IP>:8080`
+
 Optional parameters:
 
 ```powershell
@@ -38,6 +43,8 @@ Optional parameters:
 -Location "eastus"
 -VmName "grocery-free-vm"
 -AdminUser "azureuser"
+-FrontendOrigin "https://shop.example.com"
+-AdditionalCorsOrigins "https://shop.example.com,https://www.shop.example.com"
 ```
 
 ## After script finishes
