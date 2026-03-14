@@ -141,6 +141,8 @@ export class CheckoutComponent {
   error = '';
   success = '';
   postcodeError = '';
+  private confirmAttempts = 0;
+  private readonly maxConfirmAttempts = 10;
 
   constructor() {
     this.store.select('auth').pipe(take(1)).subscribe(auth => {
@@ -185,13 +187,8 @@ export class CheckoutComponent {
 
     this.confirmingPayment = true;
     if (result === 'success' && providerRef) {
-      this.orderApi.confirmPayment(orderRef, providerRef).subscribe({
-        next: (res) => this.clearCartAfterPayment(`Order ${res.orderRef} placed successfully.`),
-        error: (err) => {
-          this.confirmingPayment = false;
-          this.error = err?.error?.message || 'Payment could not be confirmed.';
-        }
-      });
+      this.confirmAttempts = 0;
+      this.confirmStripePayment(orderRef, providerRef);
       return;
     }
 
@@ -208,6 +205,22 @@ export class CheckoutComponent {
         }
       });
     }
+  }
+
+  private confirmStripePayment(orderRef: string, providerRef: string): void {
+    this.orderApi.confirmPayment(orderRef, providerRef).subscribe({
+      next: (res) => this.clearCartAfterPayment(`Order ${res.orderRef} placed successfully.`),
+      error: (err) => {
+        const code = err?.error?.code;
+        if (code === 'PAYMENT_NOT_COMPLETED' && this.confirmAttempts < this.maxConfirmAttempts) {
+          this.confirmAttempts += 1;
+          setTimeout(() => this.confirmStripePayment(orderRef, providerRef), 3000);
+          return;
+        }
+        this.confirmingPayment = false;
+        this.error = err?.error?.message || 'Payment could not be confirmed.';
+      }
+    });
   }
 
   lineTotal(item: CartItem): number {
