@@ -52,6 +52,7 @@ import {logout} from '../state/auth/auth.actions';
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
     .topbar { background: linear-gradient(90deg, #0a5c47, #0b7a52); color: #fff; position: sticky; top: 0; z-index: 30; display: flex; gap: .75rem; }
     .brand-row { display: flex; align-items: center; gap: .75rem; }
     .spacer { flex: 1; }
@@ -59,8 +60,8 @@ import {logout} from '../state/auth/auth.actions';
     .desktop-nav a, .desktop-nav button { color: #fff; }
     .active-link { background: rgba(255,255,255,.16); border-radius: 8px; font-weight: 700; }
     .mobile-only { display: none; }
-    .shell-body { padding: 1rem; overflow-x: hidden; }
-    .content { border-radius: 18px; min-height: calc(100vh - 96px); padding: 1rem; min-width: 0; overflow-x: hidden; }
+    .shell-body { flex: 1; min-height: 0; padding: 1rem; overflow: hidden; }
+    .content { height: 100%; border-radius: 18px; padding: 1rem; min-width: 0; overflow: auto; overscroll-behavior: contain; }
     .mobile-overlay { position: fixed; inset: 0; background: rgba(6, 21, 17, .45); z-index: 35; }
     .mobile-drawer {
       position: fixed;
@@ -90,7 +91,7 @@ import {logout} from '../state/auth/auth.actions';
       .desktop-nav { display: none; }
       .mobile-only { display: inline-flex; }
       .shell-body { padding: .75rem; }
-      .content { min-height: calc(100vh - 88px); padding: .85rem; }
+      .content { padding: .85rem; }
     }
   `]
 })

@@ -39,11 +39,12 @@ import {RouterLink} from '@angular/router';
     </div>
   `,
   styles: [`
-    .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1rem; background:
+    :host { display: block; height: 100dvh; overflow: hidden; }
+    .login-wrap { height: 100dvh; display: grid; place-items: center; padding: .75rem; box-sizing: border-box; overflow: hidden; background:
       radial-gradient(circle at 20% 18%, #d9f7ea 0%, transparent 40%),
       radial-gradient(circle at 82% 8%, #fff2cf 0%, transparent 38%),
       linear-gradient(140deg, #f7fcfa, #edf7f3); }
-    .login-card { width: 100%; max-width: 460px; border-radius: 20px; padding: 1.2rem; background: rgba(255,255,255,.95); }
+    .login-card { width: 100%; max-width: 430px; border-radius: 20px; padding: 1rem; background: rgba(255,255,255,.95); }
     h2 { margin: .35rem 0 .25rem; }
     .badge { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .78rem; background: #dbf4e9; color: #0f766e; }
     .subtitle { color: #5c6b63; margin-top: 0; margin-bottom: .9rem; }
@@ -54,6 +55,10 @@ import {RouterLink} from '@angular/router';
     .link { display: inline-block; margin-top: .8rem; color: #0f766e; text-decoration: none; font-weight: 600; }
     .link:hover { text-decoration: underline; }
     .error { color: #b42318; margin-top: .5rem; }
+    @media (max-width: 640px) {
+      .login-card { max-width: none; padding: .9rem; }
+      .subtitle { margin-bottom: .7rem; }
+    }
   `]
 })
 export class LoginComponent {

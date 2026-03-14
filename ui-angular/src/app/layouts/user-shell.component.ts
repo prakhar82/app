@@ -53,6 +53,7 @@ import {logout} from '../state/auth/auth.actions';
     </div>
   `,
   styles: [`
+    :host { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
     .topbar { background: linear-gradient(90deg, #134e5e, #71b280); color: #fff; position: sticky; top: 0; z-index: 30; display: flex; gap: .75rem; }
     .brand-row { display: flex; align-items: center; gap: .75rem; }
     .spacer { flex: 1; }
@@ -69,8 +70,8 @@ import {logout} from '../state/auth/auth.actions';
     .hero { padding: 1.25rem 1.5rem; color: #18342c; }
     .hero h1 { margin: 0 0 .25rem; font-size: 1.7rem; }
     .hero p { margin: 0; opacity: .8; }
-    .shell-body { padding: 0 1rem 1rem; overflow-x: hidden; }
-    .content { border-radius: 18px; min-height: calc(100vh - 190px); padding: 1rem; min-width: 0; overflow-x: hidden; }
+    .shell-body { flex: 1; min-height: 0; padding: 0 1rem 1rem; overflow: hidden; }
+    .content { height: 100%; border-radius: 18px; padding: 1rem; min-width: 0; overflow: auto; overscroll-behavior: contain; }
     .mobile-overlay { position: fixed; inset: 0; background: rgba(6, 21, 17, .45); z-index: 35; }
     .mobile-drawer {
       position: fixed;
@@ -102,7 +103,7 @@ import {logout} from '../state/auth/auth.actions';
       .hero { padding: 1rem .9rem; }
       .hero h1 { font-size: 1.35rem; }
       .shell-body { padding: 0 .75rem .75rem; }
-      .content { min-height: calc(100vh - 165px); padding: .85rem; }
+      .content { padding: .85rem; }
     }
   `]
 })
