@@ -9,6 +9,9 @@ export interface MeProfile {
   name?: string | null;
   phone?: string | null;
   preferredLanguage?: string | null;
+  accountHolderName?: string | null;
+  iban?: string | null;
+  bankName?: string | null;
   defaultAddressId?: number | null;
   role: string;
   status: string;
@@ -22,7 +25,15 @@ export class MeApiService {
     return this.http.get<MeProfile>(`${environment.apiBaseUrl}/identity/me`);
   }
 
-  update(payload: {name?: string; phone?: string; preferredLanguage?: string; defaultAddressId?: number | null}): Observable<MeProfile> {
+  update(payload: {
+    name?: string;
+    phone?: string;
+    preferredLanguage?: string;
+    accountHolderName?: string;
+    iban?: string;
+    bankName?: string;
+    defaultAddressId?: number | null
+  }): Observable<MeProfile> {
     return this.http.patch<MeProfile>(`${environment.apiBaseUrl}/identity/me`, payload);
   }
 

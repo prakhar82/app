@@ -51,9 +51,10 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
             <ng-template #readonlyThreshold>{{item.reorderThreshold}}</ng-template>
           </td>
           <td class="actions">
-            <button mat-stroked-button *ngIf="editSku !== item.sku" (click)="startEdit(item)">✎ Edit</button>
-            <button mat-raised-button color="primary" *ngIf="editSku === item.sku" (click)="saveEdit(item)" [disabled]="saving">✓ Save</button>
+            <button mat-stroked-button *ngIf="editSku !== item.sku" (click)="startEdit(item)">Edit</button>
+            <button mat-raised-button color="primary" *ngIf="editSku === item.sku" (click)="saveEdit(item)" [disabled]="saving">Save</button>
             <button mat-button *ngIf="editSku === item.sku" (click)="cancelEdit()">Cancel</button>
+            <button mat-button color="warn" (click)="deleteItem(item)" [disabled]="saving || deletingId === item.id">Delete</button>
           </td>
         </tr>
         </tbody>
@@ -70,7 +71,7 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
     .table { width: 100%; border-collapse: collapse; }
     .table th, .table td { border-bottom: 1px solid #dbe5df; padding: .55rem; text-align: left; }
     .focus { background: #fff6df; }
-    .actions { display: flex; gap: .5rem; }
+    .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
     .edit-input { width: 92px; padding: .3rem; }
     .error { color: #b42318; margin-top: .75rem; }
   `]
@@ -83,6 +84,7 @@ export class AdminInventoryComponent {
   focusSku = '';
   error = '';
   saving = false;
+  deletingId: number | null = null;
   query = '';
 
   editSku = '';
@@ -139,6 +141,27 @@ export class AdminInventoryComponent {
       error: (err) => {
         this.saving = false;
         this.error = err?.error?.message || 'Unable to update inventory.';
+      }
+    });
+  }
+
+  deleteItem(item: InventoryItem): void {
+    this.error = '';
+    if (!confirm(`Delete inventory item ${item.sku}?`)) {
+      return;
+    }
+    this.deletingId = item.id;
+    this.inventoryApi.deleteItem(item.id).subscribe({
+      next: () => {
+        this.deletingId = null;
+        if (this.editSku === item.sku) {
+          this.editSku = '';
+        }
+        this.reload();
+      },
+      error: (err) => {
+        this.deletingId = null;
+        this.error = err?.error?.message || 'Unable to delete inventory item.';
       }
     });
   }

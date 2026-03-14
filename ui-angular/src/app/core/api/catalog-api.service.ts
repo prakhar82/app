@@ -18,6 +18,19 @@ export interface Product {
   availableQty?: number;
 }
 
+export interface ProductCreateRequest {
+  sku: string;
+  name: string;
+  category: string;
+  subcategory: string;
+  price: number;
+  discountPercent?: number;
+  taxPercent: number;
+  unit: string;
+  imageUrl?: string;
+  description?: string;
+}
+
 export interface CatalogCategoryOption {
   id: number;
   name: string;
@@ -166,6 +179,14 @@ export class CatalogApiService {
     imageUrl?: string;
   }): Observable<Product> {
     return this.http.patch<Product>(`${environment.apiBaseUrl}/catalog/catalog/admin/products/${id}`, request);
+  }
+
+  createProduct(request: ProductCreateRequest): Observable<Product> {
+    return this.http.post<Product>(`${environment.apiBaseUrl}/catalog/catalog/admin/products`, request);
+  }
+
+  deleteProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiBaseUrl}/catalog/catalog/admin/products/${id}`);
   }
 
   uploadProductImage(id: number, file: File): Observable<Product> {

@@ -11,7 +11,7 @@ export interface CheckoutItemRequest {
 }
 
 export interface CheckoutRequest {
-  paymentMethod: 'COD' | 'ONLINE';
+  paymentMethod: 'COD' | 'IDEAL';
   items: CheckoutItemRequest[];
   addressMode: 'SAVED' | 'NEW';
   addressId?: number;

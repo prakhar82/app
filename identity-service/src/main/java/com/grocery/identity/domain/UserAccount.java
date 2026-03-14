@@ -20,6 +20,12 @@ public class UserAccount {
     private String phone;
     @Column
     private String preferredLanguage;
+    @Column
+    private String accountHolderName;
+    @Column
+    private String iban;
+    @Column
+    private String bankName;
     @Column(nullable = false)
     private String role;
     @Column(nullable = false)
@@ -68,6 +74,12 @@ public class UserAccount {
     public void setPhone(String phone) { this.phone = phone; }
     public String getPreferredLanguage() { return preferredLanguage; }
     public void setPreferredLanguage(String preferredLanguage) { this.preferredLanguage = preferredLanguage; }
+    public String getAccountHolderName() { return accountHolderName; }
+    public void setAccountHolderName(String accountHolderName) { this.accountHolderName = accountHolderName; }
+    public String getIban() { return iban; }
+    public void setIban(String iban) { this.iban = iban; }
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
     public boolean isGoogleVerified() { return googleVerified; }
@@ -84,4 +96,6 @@ public class UserAccount {
     public void setLastCodeSentAt(Instant lastCodeSentAt) { this.lastCodeSentAt = lastCodeSentAt; }
     public UserAddress getDefaultAddress() { return defaultAddress; }
     public void setDefaultAddress(UserAddress defaultAddress) { this.defaultAddress = defaultAddress; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

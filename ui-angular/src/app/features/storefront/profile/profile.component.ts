@@ -21,7 +21,7 @@ import {Address} from '../../../core/api/address-api.service';
     <section class="profile-shell">
       <header class="profile-header">
         <h2>My Profile</h2>
-        <p>Manage your personal details and delivery addresses.</p>
+        <p>Manage your personal details, saved payment account, and delivery addresses.</p>
       </header>
     <mat-tab-group class="profile-tabs">
       <mat-tab label="Profile">
@@ -40,6 +40,19 @@ import {Address} from '../../../core/api/address-api.service';
             </mat-form-field>
             <button mat-raised-button color="primary" type="submit" [disabled]="savingProfile">
               {{ savingProfile ? 'Saving...' : 'Save Profile' }}
+            </button>
+          </form>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="Payment Account">
+        <mat-card class="card">
+          <form [formGroup]="paymentForm" (ngSubmit)="savePaymentAccount()">
+            <mat-form-field appearance="outline" class="full"><input matInput placeholder="Account holder name" formControlName="accountHolderName" /></mat-form-field>
+            <mat-form-field appearance="outline" class="full"><input matInput placeholder="IBAN" formControlName="iban" /></mat-form-field>
+            <mat-form-field appearance="outline" class="full"><input matInput placeholder="Bank name" formControlName="bankName" /></mat-form-field>
+            <button mat-raised-button color="primary" type="submit" [disabled]="savingPayment">
+              {{ savingPayment ? 'Saving...' : 'Save Payment Account' }}
             </button>
           </form>
         </mat-card>
@@ -102,6 +115,7 @@ export class ProfileComponent {
   success = '';
   error = '';
   savingProfile = false;
+  savingPayment = false;
 
   profileForm = this.fb.group({
     email: [{value: '', disabled: true}],
@@ -109,6 +123,12 @@ export class ProfileComponent {
     phone: [''],
     preferredLanguage: [''],
     defaultAddressId: [null as number | null]
+  });
+
+  paymentForm = this.fb.group({
+    accountHolderName: [''],
+    iban: [''],
+    bankName: ['']
   });
 
   addressForm = this.fb.group({
@@ -137,6 +157,11 @@ export class ProfileComponent {
           phone: me.phone || '',
           preferredLanguage: me.preferredLanguage || '',
           defaultAddressId: me.defaultAddressId ?? null
+        });
+        this.paymentForm.patchValue({
+          accountHolderName: me.accountHolderName || '',
+          iban: me.iban || '',
+          bankName: me.bankName || ''
         });
       },
       error: (err) => this.error = err?.error?.message || 'Failed to load profile'
@@ -168,6 +193,28 @@ export class ProfileComponent {
       error: (err) => {
         this.savingProfile = false;
         this.error = err?.error?.message || 'Failed to update profile';
+      }
+    });
+  }
+
+  savePaymentAccount(): void {
+    this.error = '';
+    this.success = '';
+    this.savingPayment = true;
+    const value = this.paymentForm.getRawValue();
+    this.api.update({
+      accountHolderName: (value.accountHolderName || '').trim() || undefined,
+      iban: (value.iban || '').trim() || undefined,
+      bankName: (value.bankName || '').trim() || undefined
+    }).subscribe({
+      next: () => {
+        this.savingPayment = false;
+        this.success = 'Payment account saved';
+        this.reload();
+      },
+      error: (err) => {
+        this.savingPayment = false;
+        this.error = err?.error?.message || 'Failed to save payment account';
       }
     });
   }

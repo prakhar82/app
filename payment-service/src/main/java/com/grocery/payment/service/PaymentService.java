@@ -1,5 +1,6 @@
 package com.grocery.payment.service;
 
+import com.grocery.common.api.DomainException;
 import com.grocery.payment.domain.PaymentEntity;
 import com.grocery.payment.dto.PaymentIntentRequest;
 import com.grocery.payment.dto.PaymentIntentResponse;
@@ -17,12 +18,17 @@ public class PaymentService {
     }
 
     public PaymentIntentResponse createIntent(PaymentIntentRequest request) {
+        String method = request.method() == null ? "" : request.method().trim().toUpperCase();
+        if (!"IDEAL".equals(method) && !"ONLINE".equals(method)) {
+            throw new DomainException("PAYMENT_METHOD_NOT_SUPPORTED", "Supported online payment methods: IDEAL");
+        }
         PaymentIntentResponse response = paymentProvider.createIntent(request);
         PaymentEntity entity = new PaymentEntity();
         entity.setOrderRef(request.orderRef());
-        entity.setMethod(request.method());
+        entity.setMethod(method);
         entity.setAmount(request.amount());
         entity.setStatus(response.status());
+        entity.setProviderRef(response.providerRef());
         paymentRepository.save(entity);
         return response;
     }

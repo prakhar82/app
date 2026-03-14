@@ -10,6 +10,8 @@ import java.util.UUID;
 public class DummyPaymentProvider implements PaymentProvider {
     @Override
     public PaymentIntentResponse createIntent(PaymentIntentRequest request) {
-        return new PaymentIntentResponse(request.orderRef(), "SUCCESS", "DUMMY-" + UUID.randomUUID().toString().substring(0, 8));
+        String method = request.method() == null ? "ONLINE" : request.method().trim().toUpperCase();
+        String prefix = "IDEAL".equals(method) ? "IDEAL" : "DUMMY";
+        return new PaymentIntentResponse(request.orderRef(), "SUCCESS", prefix + "-" + UUID.randomUUID().toString().substring(0, 8));
     }
 }

@@ -27,7 +27,7 @@ import {PostcodeApiService} from '../../../core/api/postcode-api.service';
   ],
   template: `
     <h2>Checkout</h2>
-    <p class="muted">Select delivery address and payment method.</p>
+    <p class="muted">Select delivery address and final payment method.</p>
 
     <div class="layout" *ngIf="!loading; else loadingTpl">
       <mat-card class="left">
@@ -61,8 +61,9 @@ import {PostcodeApiService} from '../../../core/api/postcode-api.service';
         <h3>Payment Method</h3>
         <mat-radio-group [formControl]="paymentMethod">
           <mat-radio-button value="COD">Cash on Delivery</mat-radio-button>
-          <mat-radio-button value="ONLINE" class="ml">Online Payment</mat-radio-button>
+          <mat-radio-button value="IDEAL" class="ml">Pay with iDEAL</mat-radio-button>
         </mat-radio-group>
+        <p class="hint" *ngIf="paymentMethod.value==='IDEAL'">Use iDEAL for the final order payment.</p>
       </mat-card>
 
       <mat-card class="right">
@@ -100,6 +101,7 @@ import {PostcodeApiService} from '../../../core/api/postcode-api.service';
     .mt { margin-top: .5rem; }
     .ml { margin-left: 1rem; }
     .block { margin-top: .75rem; }
+    .hint { color: #456458; margin-top: .6rem; }
     .error { color: #b42318; margin-top: .5rem; }
     .ok { color: #126b2f; margin-top: .5rem; }
     @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
@@ -115,7 +117,7 @@ export class CheckoutComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
-  paymentMethod = this.fb.control<'COD' | 'ONLINE'>('COD', [Validators.required]);
+  paymentMethod = this.fb.control<'COD' | 'IDEAL'>('COD', [Validators.required]);
   addressMode = this.fb.control<'SAVED' | 'NEW'>('SAVED', [Validators.required]);
   selectedAddressId = this.fb.control<number | null>(null);
   newAddressForm = this.fb.group({

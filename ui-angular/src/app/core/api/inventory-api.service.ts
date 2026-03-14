@@ -43,4 +43,8 @@ export class InventoryApiService {
   adjust(request: {sku: string; quantityDelta: number; reason: string; reorderThreshold?: number | null}): Observable<InventoryItem> {
     return this.http.post<InventoryItem>(`${environment.apiBaseUrl}/inventory/inventory/admin/adjust`, request);
   }
+
+  deleteItem(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiBaseUrl}/inventory/inventory/admin/items/${id}`);
+  }
 }

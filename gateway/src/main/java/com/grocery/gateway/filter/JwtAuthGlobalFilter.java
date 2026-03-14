@@ -21,7 +21,14 @@ import java.util.Map;
 public class JwtAuthGlobalFilter implements org.springframework.cloud.gateway.filter.GlobalFilter, Ordered {
 
     private final byte[] secret;
-    private final List<String> protectedPrefixes = List.of("/api/cart", "/api/orders", "/api/inventory", "/api/payments", "/api/identity/addresses", "/api/identity/me");
+    private final List<String> protectedPrefixes = List.of(
+            "/api/cart",
+            "/api/orders",
+            "/api/inventory",
+            "/api/payments",
+            "/api/identity/addresses",
+            "/api/identity/me",
+            "/api/identity/admin");
 
     public JwtAuthGlobalFilter(@Value("${JWT_SECRET:replace-with-very-strong-32-char-secret}") String secret) {
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
@@ -83,6 +90,8 @@ public class JwtAuthGlobalFilter implements org.springframework.cloud.gateway.fi
         return path.startsWith("/api/orders/orders/admin")
                 || path.startsWith("/api/inventory/inventory/admin")
                 || path.startsWith("/api/catalog/catalog/admin")
+                || path.startsWith("/api/identity/admin")
+                || path.startsWith("/api/payments/payments/admin")
                 || (path.startsWith("/api/orders/orders/") && path.endsWith("/status"));
     }
 

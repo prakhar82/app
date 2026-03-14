@@ -208,6 +208,16 @@ public class InventoryReservationService {
         return inventoryRepository.save(inv);
     }
 
+    @Transactional
+    public void deleteInventoryItem(Long id) {
+        InventoryItem inv = inventoryRepository.findById(id)
+                .orElseThrow(() -> new DomainException("INV_NOT_FOUND", "Inventory item not found"));
+        if (inv.getReservedQty() > 0) {
+            throw new DomainException("INV_DELETE_BLOCKED", "Cannot delete inventory with reserved stock");
+        }
+        inventoryRepository.delete(inv);
+    }
+
     @Transactional(readOnly = true)
     public List<LowStockItemResponse> lowStock() {
         return inventoryRepository.findAll().stream()

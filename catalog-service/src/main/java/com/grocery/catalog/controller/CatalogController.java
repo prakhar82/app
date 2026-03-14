@@ -1,6 +1,7 @@
 package com.grocery.catalog.controller;
 
 import com.grocery.catalog.dto.BulkUploadResult;
+import com.grocery.catalog.dto.ProductCreateRequest;
 import com.grocery.catalog.dto.ProductResponse;
 import com.grocery.catalog.dto.ProductUpdateRequest;
 import com.grocery.catalog.service.ExcelUploadService;
@@ -44,9 +45,19 @@ public class CatalogController {
         return productAdminService.list(q);
     }
 
+    @PostMapping("/admin/products")
+    public ProductResponse createProduct(@Valid @RequestBody ProductCreateRequest request) {
+        return productAdminService.create(request);
+    }
+
     @PatchMapping("/admin/products/{id}")
     public ProductResponse updateProduct(@PathVariable("id") Long id, @Valid @RequestBody ProductUpdateRequest request) {
         return productAdminService.update(id, request);
+    }
+
+    @DeleteMapping("/admin/products/{id}")
+    public void deleteProduct(@PathVariable("id") Long id) {
+        productAdminService.delete(id);
     }
 
     @PostMapping(value = "/admin/products/{id}/image", consumes = "multipart/form-data")

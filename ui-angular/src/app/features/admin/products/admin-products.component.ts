@@ -3,8 +3,8 @@ import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
-import {CatalogApiService, Product} from '../../../core/api/catalog-api.service';
 import {ActivatedRoute} from '@angular/router';
+import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/api/catalog-api.service';
 
 @Component({
   selector: 'app-admin-products',
@@ -12,7 +12,45 @@ import {ActivatedRoute} from '@angular/router';
   imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule],
   template: `
     <h3>Admin Product Management</h3>
-    <p class="muted">Search products, then edit selected product below the table.</p>
+    <p class="muted">Create products manually, edit existing products, or remove products directly from this screen.</p>
+
+    <mat-card class="section-card">
+      <h4>Manual Product Entry</h4>
+      <div class="grid">
+        <label>SKU
+          <input [(ngModel)]="draft.sku" />
+        </label>
+        <label>Name
+          <input [(ngModel)]="draft.name" />
+        </label>
+        <label>Category
+          <input [(ngModel)]="draft.category" placeholder="Fruits" />
+        </label>
+        <label>Subcategory
+          <input [(ngModel)]="draft.subcategory" placeholder="Citrus" />
+        </label>
+        <label>Price (EUR)
+          <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
+        </label>
+        <label>Tax (%)
+          <input type="number" min="0" step="0.01" [(ngModel)]="draft.taxPercent" />
+        </label>
+        <label>Discount (%)
+          <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
+        </label>
+        <label>Unit
+          <input [(ngModel)]="draft.unit" placeholder="kg" />
+        </label>
+        <label class="full">Description
+          <textarea rows="3" [(ngModel)]="draft.description"></textarea>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+          {{creating ? 'Adding...' : 'Add Product'}}
+        </button>
+      </div>
+    </mat-card>
 
     <mat-card class="section-card">
       <div class="toolbar">
@@ -27,6 +65,8 @@ import {ActivatedRoute} from '@angular/router';
           <tr>
             <th>SKU</th>
             <th>Name</th>
+            <th>Category</th>
+            <th>Subcategory</th>
             <th>Price</th>
             <th>Tax</th>
             <th>Unit</th>
@@ -37,10 +77,15 @@ import {ActivatedRoute} from '@angular/router';
           <tr *ngFor="let p of products" [class.selected]="selected?.id === p.id">
             <td>{{p.sku}}</td>
             <td>{{p.name}}</td>
+            <td>{{p.category}}</td>
+            <td>{{p.subcategory}}</td>
             <td>{{p.price | currency:'EUR'}}</td>
             <td>{{p.taxPercent || 0}}%</td>
             <td>{{p.unit || '-'}}</td>
-            <td class="act-col"><button mat-stroked-button color="primary" (click)="select(p)">Edit</button></td>
+            <td class="act-col actions">
+              <button mat-stroked-button color="primary" (click)="select(p)">Edit</button>
+              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+            </td>
           </tr>
           </tbody>
         </table>
@@ -101,11 +146,12 @@ import {ActivatedRoute} from '@angular/router';
     .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; }
     .search { flex: 1; max-width: 420px; padding: .5rem .65rem; border: 1px solid #cfdad4; border-radius: 8px; }
     .scroll-wrap { max-height: 52vh; overflow: auto; border: 1px solid #e2ebe6; border-radius: 10px; background: #fff; }
-    .table { width: 100%; border-collapse: collapse; min-width: 620px; }
+    .table { width: 100%; border-collapse: collapse; min-width: 840px; }
     .table th, .table td { padding: .55rem; border-bottom: 1px solid #e2ebe6; text-align: left; }
     .table thead th { position: sticky; top: 0; background: #f2f8f4; z-index: 1; }
     .table tr.selected { background: #eef7f2; }
-    .act-col { width: 120px; text-align: center; }
+    .act-col { width: 180px; text-align: center; }
+    .actions { display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap; }
     .blank { margin: .8rem; color: #5a7067; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
     .grid label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #456458; }
@@ -132,10 +178,13 @@ export class AdminProductsComponent {
   loading = false;
   savingDetails = false;
   savingImage = false;
+  creating = false;
+  deletingId: number | null = null;
   error = '';
   message = '';
   query = '';
   selectedFile: File | null = null;
+  draft: ProductCreateRequest = this.emptyDraft();
   edit = {
     name: '',
     price: 0,
@@ -165,6 +214,8 @@ export class AdminProductsComponent {
           const refreshed = products.find(p => p.id === this.selected!.id);
           if (refreshed) {
             this.select(refreshed);
+          } else {
+            this.selected = null;
           }
         }
       },
@@ -191,6 +242,63 @@ export class AdminProductsComponent {
       unit: product.unit || '',
       description: product.description || ''
     };
+  }
+
+  createProduct(): void {
+    this.error = '';
+    this.message = '';
+    if (!this.draft.sku.trim() || !this.draft.name.trim() || !this.draft.category.trim() || !this.draft.subcategory.trim() || !this.draft.unit.trim()) {
+      this.error = 'SKU, name, category, subcategory, and unit are required.';
+      return;
+    }
+    this.creating = true;
+    this.catalogApi.createProduct({
+      ...this.draft,
+      sku: this.draft.sku.trim(),
+      name: this.draft.name.trim(),
+      category: this.draft.category.trim(),
+      subcategory: this.draft.subcategory.trim(),
+      unit: this.draft.unit.trim(),
+      description: this.blankToUndefined(this.draft.description),
+      imageUrl: this.blankToUndefined(this.draft.imageUrl),
+      price: Number(this.draft.price),
+      taxPercent: Number(this.draft.taxPercent),
+      discountPercent: Number(this.draft.discountPercent || 0)
+    }).subscribe({
+      next: (product) => {
+        this.creating = false;
+        this.message = 'Product added successfully.';
+        this.draft = this.emptyDraft();
+        this.products = [product, ...this.products];
+      },
+      error: (err) => {
+        this.creating = false;
+        this.error = err?.error?.message || 'Unable to create product.';
+      }
+    });
+  }
+
+  deleteProduct(product: Product): void {
+    this.error = '';
+    this.message = '';
+    if (!confirm(`Delete product ${product.sku}?`)) {
+      return;
+    }
+    this.deletingId = product.id;
+    this.catalogApi.deleteProduct(product.id).subscribe({
+      next: () => {
+        this.deletingId = null;
+        this.message = 'Product deleted successfully.';
+        this.products = this.products.filter(existing => existing.id !== product.id);
+        if (this.selected?.id === product.id) {
+          this.selected = null;
+        }
+      },
+      error: (err) => {
+        this.deletingId = null;
+        this.error = err?.error?.message || 'Unable to delete product.';
+      }
+    });
   }
 
   saveDetails(): void {
@@ -247,5 +355,25 @@ export class AdminProductsComponent {
         this.error = err?.error?.message || 'Unable to upload image.';
       }
     });
+  }
+
+  private emptyDraft(): ProductCreateRequest {
+    return {
+      sku: '',
+      name: '',
+      category: '',
+      subcategory: '',
+      price: 0,
+      discountPercent: 0,
+      taxPercent: 0,
+      unit: '',
+      description: '',
+      imageUrl: ''
+    };
+  }
+
+  private blankToUndefined(value?: string): string | undefined {
+    const trimmed = (value || '').trim();
+    return trimmed ? trimmed : undefined;
   }
 }

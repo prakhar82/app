@@ -35,6 +35,9 @@ public class MeService {
         user.setName(request.name());
         user.setPhone(request.phone());
         user.setPreferredLanguage(request.preferredLanguage());
+        user.setAccountHolderName(blankToNull(request.accountHolderName()));
+        user.setIban(blankToNull(request.iban()));
+        user.setBankName(blankToNull(request.bankName()));
         if (request.defaultAddressId() != null) {
             var address = userAddressRepository.findByIdAndUserId(request.defaultAddressId(), user.getId())
                     .orElseThrow(() -> new DomainException("NOT_FOUND", "Address not found"));
@@ -57,9 +60,20 @@ public class MeService {
                 user.getName(),
                 user.getPhone(),
                 user.getPreferredLanguage(),
+                user.getAccountHolderName(),
+                user.getIban(),
+                user.getBankName(),
                 user.getDefaultAddress() == null ? null : user.getDefaultAddress().getId(),
                 user.getRole(),
                 user.getStatus()
         );
+    }
+
+    private String blankToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

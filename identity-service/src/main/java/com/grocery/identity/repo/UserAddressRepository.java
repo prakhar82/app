@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface UserAddressRepository extends JpaRepository<UserAddress, Long> {
     List<UserAddress> findByUserIdOrderByIdDesc(Long userId);
     Optional<UserAddress> findByIdAndUserId(Long id, Long userId);
+    void deleteByUserId(Long userId);
 }

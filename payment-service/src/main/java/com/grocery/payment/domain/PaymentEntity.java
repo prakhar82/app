@@ -18,6 +18,8 @@ public class PaymentEntity {
     private BigDecimal amount;
     @Column(nullable = false)
     private String status;
+    @Column
+    private String providerRef;
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -25,5 +27,6 @@ public class PaymentEntity {
 
     public void setOrderRef(String orderRef){this.orderRef=orderRef;} public void setMethod(String method){this.method=method;}
     public void setAmount(BigDecimal amount){this.amount=amount;} public void setStatus(String status){this.status=status;}
+    public void setProviderRef(String providerRef){this.providerRef=providerRef;}
     public String getOrderRef(){return orderRef;} public String getStatus(){return status;}
 }

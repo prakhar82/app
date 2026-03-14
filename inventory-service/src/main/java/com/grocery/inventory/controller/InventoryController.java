@@ -73,4 +73,9 @@ public class InventoryController {
     public Object upsert(@Valid @RequestBody InventoryUpsertRequest request) {
         return inventoryReservationService.upsertInventory(request);
     }
+
+    @DeleteMapping("/admin/items/{id}")
+    public void delete(@PathVariable("id") Long id) {
+        inventoryReservationService.deleteInventoryItem(id);
+    }
 }
