@@ -59,8 +59,8 @@ import {logout} from '../state/auth/auth.actions';
     .desktop-nav a, .desktop-nav button { color: #fff; }
     .active-link { background: rgba(255,255,255,.16); border-radius: 8px; font-weight: 700; }
     .mobile-only { display: none; }
-    .shell-body { padding: 1rem; }
-    .content { border-radius: 18px; min-height: calc(100vh - 96px); padding: 1rem; }
+    .shell-body { padding: 1rem; overflow-x: hidden; }
+    .content { border-radius: 18px; min-height: calc(100vh - 96px); padding: 1rem; min-width: 0; overflow-x: hidden; }
     .mobile-overlay { position: fixed; inset: 0; background: rgba(6, 21, 17, .45); z-index: 35; }
     .mobile-drawer {
       position: fixed;

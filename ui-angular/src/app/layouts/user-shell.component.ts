@@ -69,8 +69,8 @@ import {logout} from '../state/auth/auth.actions';
     .hero { padding: 1.25rem 1.5rem; color: #18342c; }
     .hero h1 { margin: 0 0 .25rem; font-size: 1.7rem; }
     .hero p { margin: 0; opacity: .8; }
-    .shell-body { padding: 0 1rem 1rem; }
-    .content { border-radius: 18px; min-height: calc(100vh - 190px); padding: 1rem; }
+    .shell-body { padding: 0 1rem 1rem; overflow-x: hidden; }
+    .content { border-radius: 18px; min-height: calc(100vh - 190px); padding: 1rem; min-width: 0; overflow-x: hidden; }
     .mobile-overlay { position: fixed; inset: 0; background: rgba(6, 21, 17, .45); z-index: 35; }
     .mobile-drawer {
       position: fixed;

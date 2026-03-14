@@ -1,5 +1,6 @@
 import {Component, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
 import {Store} from '@ngrx/store';
 import {take} from 'rxjs/operators';
 import {forkJoin} from 'rxjs';
@@ -13,7 +14,7 @@ import {Router} from '@angular/router';
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatTabsModule],
+  imports: [CommonModule, FormsModule, MatCardModule, MatButtonModule, MatTabsModule],
   template: `
     <h3>My Orders</h3>
     <p class="muted">Keep active, rejected, and completed orders separate so changes are easier to track.</p>
@@ -72,6 +73,17 @@ import {Router} from '@angular/router';
 
       <mat-tab [label]="'Order History (' + historyOrders().length + ')'">
         <div class="tab-pane">
+          <div class="filters">
+            <label>
+              From
+              <input type="date" [(ngModel)]="historyFromDate" />
+            </label>
+            <label>
+              To
+              <input type="date" [(ngModel)]="historyToDate" />
+            </label>
+            <button mat-stroked-button (click)="clearHistoryFilters()">Clear</button>
+          </div>
           <p *ngIf="historyOrders().length === 0">No completed order history yet.</p>
           <mat-card class="order history-card" *ngFor="let order of historyOrders()">
             <div class="head">
@@ -97,6 +109,9 @@ import {Router} from '@angular/router';
   styles: [`
     .muted { color: #4d6057; margin-top: -.25rem; }
     .tab-pane { padding-top: .9rem; }
+    .filters { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; margin-bottom: .85rem; }
+    .filters label { display: flex; flex-direction: column; gap: .3rem; color: #4f655c; font-size: .92rem; }
+    .filters input { min-width: 160px; padding: .5rem .6rem; border: 1px solid #cbd8d2; border-radius: 8px; }
     .order { border-radius: 14px; margin-bottom: .75rem; }
     .rejected-card { border-left: 4px solid #b42318; }
     .history-card { opacity: .96; }
@@ -123,6 +138,8 @@ export class OrdersComponent {
   loading = true;
   email = '';
   error = '';
+  historyFromDate = '';
+  historyToDate = '';
 
   constructor() {
     this.store.select('auth').pipe(take(1)).subscribe(auth => {
@@ -174,6 +191,28 @@ export class OrdersComponent {
   historyOrders(): Order[] {
     return this.orders.filter(order =>
       ['DELIVERED', 'CANCELED', 'PAYMENT_CANCELLED', 'PAYMENT_FAILED'].includes(order.status)
-    );
+    ).filter(order => this.matchesHistoryRange(order));
+  }
+
+  clearHistoryFilters(): void {
+    this.historyFromDate = '';
+    this.historyToDate = '';
+  }
+
+  private matchesHistoryRange(order: Order): boolean {
+    const created = new Date(order.createdAt);
+    if (this.historyFromDate) {
+      const from = new Date(`${this.historyFromDate}T00:00:00`);
+      if (created < from) {
+        return false;
+      }
+    }
+    if (this.historyToDate) {
+      const to = new Date(`${this.historyToDate}T23:59:59`);
+      if (created > to) {
+        return false;
+      }
+    }
+    return true;
   }
 }

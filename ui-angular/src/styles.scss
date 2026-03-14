@@ -29,6 +29,7 @@ $grocery-theme: mat.define-light-theme((
 
 html, body {
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -42,4 +43,9 @@ body {
 
 .mat-mdc-card {
   box-shadow: 0 12px 30px rgba(20, 73, 62, 0.08) !important;
+}
+
+.mat-mdc-tab-body-wrapper,
+.mat-mdc-tab-body-content {
+  min-width: 0;
 }

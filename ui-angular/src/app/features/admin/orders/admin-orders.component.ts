@@ -32,16 +32,16 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
     <div class="filters">
       <label>
-        From
-        <input type="date" [(ngModel)]="fromDate" (ngModelChange)="resetOrderPages()" />
+        History From
+        <input type="date" [(ngModel)]="historyFromDate" (ngModelChange)="resetHistoryPage()" />
       </label>
       <label>
-        To
-        <input type="date" [(ngModel)]="toDate" (ngModelChange)="resetOrderPages()" />
+        History To
+        <input type="date" [(ngModel)]="historyToDate" (ngModelChange)="resetHistoryPage()" />
       </label>
       <label>
         Active Sort
-        <select [(ngModel)]="activeSort" (ngModelChange)="resetOrderPages()">
+        <select [(ngModel)]="activeSort" (ngModelChange)="resetActivePage()">
           <option value="price-desc">Highest price</option>
           <option value="price-asc">Lowest price</option>
           <option value="date-desc">Newest first</option>
@@ -79,13 +79,13 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
             <div class="status-row">
               <select class="status-select" [(ngModel)]="nextStatusByRef[order.orderRef]">
-                <option *ngFor="let status of activeStatusOptions" [value]="status">{{status}}</option>
+                <option *ngFor="let option of statusOptionsFor(order)" [value]="option.value">{{option.label}}</option>
               </select>
               <input
+                *ngIf="nextStatusByRef[order.orderRef] === 'REJECTED'"
                 class="comment-input"
-                placeholder="Reason required for REJECTED"
-                [(ngModel)]="commentByRef[order.orderRef]"
-                [disabled]="nextStatusByRef[order.orderRef] !== 'REJECTED'" />
+                placeholder="Reason for rejection"
+                [(ngModel)]="commentByRef[order.orderRef]" />
               <button mat-raised-button color="primary" (click)="saveStatus(order)" [disabled]="busyRef === order.orderRef">
                 {{busyRef === order.orderRef ? 'Saving...' : 'Save'}}
               </button>
@@ -125,15 +125,16 @@ import {Order, OrderApiService} from '../../../core/api/order-api.service';
 
             <div class="status-row">
               <select class="status-select" [(ngModel)]="nextStatusByRef[order.orderRef]">
-                <option value="REJECTED">REJECTED</option>
-                <option value="PENDING">PENDING</option>
-                <option value="CANCELED">CANCELED</option>
+                <option value="REJECTED">Rejected</option>
+                <option *ngIf="order.paymentMethod === 'COD'" value="COD_PENDING">Cash on Delivery</option>
+                <option *ngIf="order.paymentMethod !== 'COD'" value="PENDING_PAYMENT">Payment Pending</option>
+                <option *ngIf="order.paymentMethod !== 'COD'" value="CONFIRMED">Payment Confirmed</option>
               </select>
               <input
+                *ngIf="nextStatusByRef[order.orderRef] === 'REJECTED'"
                 class="comment-input"
-                placeholder="Reason required for REJECTED"
-                [(ngModel)]="commentByRef[order.orderRef]"
-                [disabled]="nextStatusByRef[order.orderRef] !== 'REJECTED'" />
+                placeholder="Reason for rejection"
+                [(ngModel)]="commentByRef[order.orderRef]" />
               <button mat-raised-button color="primary" (click)="saveStatus(order)" [disabled]="busyRef === order.orderRef">
                 {{busyRef === order.orderRef ? 'Saving...' : 'Save'}}
               </button>
@@ -222,12 +223,11 @@ export class AdminOrdersComponent {
   loading = true;
   error = '';
   busyRef = '';
-  fromDate = '';
-  toDate = '';
+  historyFromDate = '';
+  historyToDate = '';
   activeSort: 'price-desc' | 'price-asc' | 'date-desc' | 'date-asc' = 'price-desc';
   nextStatusByRef: Record<string, string> = {};
   commentByRef: Record<string, string> = {};
-  activeStatusOptions = ['PENDING', 'COD_PENDING', 'PENDING_PAYMENT', 'CONFIRMED', 'FULFILLING', 'SHIPPED', 'DELIVERED', 'REJECTED', 'CANCELED'];
   pagination = {
     active: {pageIndex: 0, pageSize: 6},
     rejected: {pageIndex: 0, pageSize: 6},
@@ -261,26 +261,28 @@ export class AdminOrdersComponent {
   }
 
   clearFilters(): void {
-    this.fromDate = '';
-    this.toDate = '';
+    this.historyFromDate = '';
+    this.historyToDate = '';
     this.activeSort = 'price-desc';
-    this.resetOrderPages();
+    this.resetActivePage();
+    this.resetHistoryPage();
   }
 
   activeOrders(): Order[] {
-    return this.sortActive(this.filteredOrders().filter(order =>
+    return this.sortActive(this.orders.filter(order =>
       ['PENDING', 'COD_PENDING', 'PENDING_PAYMENT', 'CONFIRMED', 'FULFILLING', 'SHIPPED'].includes(order.status)
     ));
   }
 
   rejectedOrders(): Order[] {
-    return this.filteredOrders().filter(order => order.status === 'REJECTED');
+    return this.orders.filter(order => order.status === 'REJECTED');
   }
 
   historyOrders(): Order[] {
-    return this.filteredOrders().filter(order =>
+    return this.orders.filter(order =>
       ['DELIVERED', 'CANCELED', 'PAYMENT_CANCELLED', 'PAYMENT_FAILED'].includes(order.status)
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    ).filter(order => this.matchesHistoryRange(order))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   pagedActiveOrders(): Order[] {
@@ -298,6 +300,14 @@ export class AdminOrdersComponent {
   resetOrderPages(): void {
     this.pagination.active.pageIndex = 0;
     this.pagination.rejected.pageIndex = 0;
+    this.pagination.history.pageIndex = 0;
+  }
+
+  resetActivePage(): void {
+    this.pagination.active.pageIndex = 0;
+  }
+
+  resetHistoryPage(): void {
     this.pagination.history.pageIndex = 0;
   }
 
@@ -321,6 +331,20 @@ export class AdminOrdersComponent {
     return (Date.now() - createdAt) > 24 * 60 * 60 * 1000;
   }
 
+  statusOptionsFor(order: Order): Array<{value: string; label: string}> {
+    if (order.paymentMethod === 'COD') {
+      return [
+        {value: 'COD_PENDING', label: 'Cash on Delivery'},
+        {value: 'REJECTED', label: 'Rejected'}
+      ];
+    }
+    return [
+      {value: 'PENDING_PAYMENT', label: 'Payment Pending'},
+      {value: 'CONFIRMED', label: 'Payment Confirmed'},
+      {value: 'REJECTED', label: 'Rejected'}
+    ];
+  }
+
   saveStatus(order: Order): void {
     this.error = '';
     const nextStatus = this.nextStatusByRef[order.orderRef] || order.status;
@@ -340,25 +364,6 @@ export class AdminOrdersComponent {
         this.busyRef = '';
         this.error = err?.error?.message || 'Unable to update order status.';
       }
-    });
-  }
-
-  private filteredOrders(): Order[] {
-    return this.orders.filter(order => {
-      const created = new Date(order.createdAt);
-      if (this.fromDate) {
-        const from = new Date(`${this.fromDate}T00:00:00`);
-        if (created < from) {
-          return false;
-        }
-      }
-      if (this.toDate) {
-        const to = new Date(`${this.toDate}T23:59:59`);
-        if (created > to) {
-          return false;
-        }
-      }
-      return true;
     });
   }
 
@@ -394,5 +399,22 @@ export class AdminOrdersComponent {
     this.slicePage(this.activeOrders(), this.pagination.active);
     this.slicePage(this.rejectedOrders(), this.pagination.rejected);
     this.slicePage(this.historyOrders(), this.pagination.history);
+  }
+
+  private matchesHistoryRange(order: Order): boolean {
+    const created = new Date(order.createdAt);
+    if (this.historyFromDate) {
+      const from = new Date(`${this.historyFromDate}T00:00:00`);
+      if (created < from) {
+        return false;
+      }
+    }
+    if (this.historyToDate) {
+      const to = new Date(`${this.historyToDate}T23:59:59`);
+      if (created > to) {
+        return false;
+      }
+    }
+    return true;
   }
 }

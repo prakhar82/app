@@ -13,11 +13,117 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
   imports: [CommonModule, FormsModule, MatButtonModule, MatCardModule, MatPaginatorModule],
   template: `
     <h3>Admin Product Management</h3>
-    <p class="muted">Create products manually, edit existing products, or remove products directly from this screen.</p>
+    <p class="muted">Use a compact list view, then open the detail panel only for the product you want to edit.</p>
 
     <mat-card class="section-card">
-      <h4>Manual Product Entry</h4>
-      <div class="grid">
+      <div class="toolbar">
+        <input class="search" type="text" placeholder="Search by name, SKU, or category" [(ngModel)]="query" (keyup.enter)="reload()" />
+        <button mat-stroked-button (click)="reload()">Search</button>
+        <button mat-button (click)="clear()">Clear</button>
+      </div>
+      <div class="page-note" *ngIf="!loading && (products.length > 0 || creatingInline)">{{productPageLabel()}}</div>
+
+      <div class="table-shell">
+        <table class="table desktop-table" *ngIf="products.length > 0 || creatingInline">
+          <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th class="act-col">Action</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let p of pagedProducts()"
+              [class.selected]="selected?.id === p.id"
+              (click)="select(p)">
+            <td>{{p.name}}</td>
+            <td>{{p.category}}</td>
+            <td>{{p.price | currency:'EUR'}}</td>
+            <td class="act-col actions" (click)="$event.stopPropagation()">
+              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+            </td>
+          </tr>
+          <tr *ngIf="creatingInline" class="new-row selected">
+            <td><input [(ngModel)]="draft.name" placeholder="Product name" /></td>
+            <td><input [(ngModel)]="draft.category" placeholder="Category" /></td>
+            <td><input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" /></td>
+            <td class="act-col actions">
+              <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                {{creating ? 'Saving...' : 'Save'}}
+              </button>
+              <button mat-button (click)="cancelCreate()">Cancel</button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+
+        <div class="mobile-list" *ngIf="products.length > 0 || creatingInline">
+          <article class="mobile-product"
+                   *ngFor="let p of pagedProducts()"
+                   [class.selected]="selected?.id === p.id"
+                   (click)="select(p)">
+            <div class="mobile-head">
+              <div>
+                <strong>{{p.name}}</strong>
+                <p>{{p.category}}</p>
+              </div>
+              <strong>{{p.price | currency:'EUR'}}</strong>
+            </div>
+            <div class="mobile-actions" (click)="$event.stopPropagation()">
+              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
+            </div>
+          </article>
+
+          <article class="mobile-product selected new-row" *ngIf="creatingInline">
+            <label>
+              Name
+              <input [(ngModel)]="draft.name" placeholder="Product name" />
+            </label>
+            <label>
+              Category
+              <input [(ngModel)]="draft.category" placeholder="Category" />
+            </label>
+            <label>
+              Price
+              <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" placeholder="0.00" />
+            </label>
+            <div class="mobile-actions">
+              <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+                {{creating ? 'Saving...' : 'Save'}}
+              </button>
+              <button mat-button (click)="cancelCreate()">Cancel</button>
+            </div>
+          </article>
+        </div>
+
+        <p *ngIf="!loading && products.length === 0 && !creatingInline" class="blank">No products found.</p>
+        <p *ngIf="loading" class="blank">Loading products...</p>
+      </div>
+
+      <div class="table-footer">
+        <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add Product</button>
+      </div>
+
+      <mat-paginator *ngIf="products.length > 0"
+                     [length]="products.length"
+                     [pageIndex]="pageIndex"
+                     [pageSize]="pageSize"
+                     [pageSizeOptions]="[6, 8, 12]"
+                     (page)="onPage($event)">
+      </mat-paginator>
+    </mat-card>
+
+    <mat-card class="editor-card" *ngIf="selected || creatingInline">
+      <div class="editor-head">
+        <div>
+          <h4>{{creatingInline ? 'New Product Details' : ('Edit Product: ' + selected!.name)}}</h4>
+          <p class="editor-hint">Only the selected row opens full details, so the list stays compact.</p>
+        </div>
+        <button mat-button *ngIf="selected" (click)="closeSelection()">Close</button>
+      </div>
+
+      <div class="grid" *ngIf="creatingInline">
         <label>SKU
           <input [(ngModel)]="draft.sku" />
         </label>
@@ -25,10 +131,10 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
           <input [(ngModel)]="draft.name" />
         </label>
         <label>Category
-          <input [(ngModel)]="draft.category" placeholder="Fruits" />
+          <input [(ngModel)]="draft.category" />
         </label>
         <label>Subcategory
-          <input [(ngModel)]="draft.subcategory" placeholder="Citrus" />
+          <input [(ngModel)]="draft.subcategory" />
         </label>
         <label>Price (EUR)
           <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
@@ -40,98 +146,28 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
           <input type="number" min="0" step="0.01" [(ngModel)]="draft.discountPercent" />
         </label>
         <label>Unit
-          <input [(ngModel)]="draft.unit" placeholder="kg" />
+          <input [(ngModel)]="draft.unit" />
         </label>
         <label class="full">Description
           <textarea rows="3" [(ngModel)]="draft.description"></textarea>
         </label>
+        <label class="full">Image URL
+          <input [(ngModel)]="draft.imageUrl" placeholder="https://..." />
+        </label>
       </div>
-      <div class="btn-row">
-        <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
-          {{creating ? 'Adding...' : 'Add Product'}}
-        </button>
-      </div>
-    </mat-card>
 
-    <mat-card class="section-card">
-      <div class="toolbar">
-        <input class="search" type="text" placeholder="Search by name/SKU/category" [(ngModel)]="query" (keyup.enter)="reload()" />
-        <button mat-stroked-button (click)="reload()">Search</button>
-        <button mat-button (click)="clear()">Clear</button>
-      </div>
-      <div class="page-note" *ngIf="!loading && products.length > 0">{{productPageLabel()}}</div>
-
-      <div class="scroll-wrap">
-        <table class="table desktop-table" *ngIf="products.length > 0">
-          <thead>
-          <tr>
-            <th>SKU</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Subcategory</th>
-            <th>Price</th>
-            <th>Tax</th>
-            <th>Unit</th>
-            <th class="act-col">Action</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let p of pagedProducts()" [class.selected]="selected?.id === p.id">
-            <td>{{p.sku}}</td>
-            <td>{{p.name}}</td>
-            <td>{{p.category}}</td>
-            <td>{{p.subcategory}}</td>
-            <td>{{p.price | currency:'EUR'}}</td>
-            <td>{{p.taxPercent || 0}}%</td>
-            <td>{{p.unit || '-'}}</td>
-            <td class="act-col actions">
-              <button mat-stroked-button color="primary" (click)="select(p)">Edit</button>
-              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-        <div class="mobile-list" *ngIf="products.length > 0">
-          <article class="mobile-product" *ngFor="let p of pagedProducts()" [class.selected]="selected?.id === p.id">
-            <div class="mobile-head">
-              <div>
-                <strong>{{p.name}}</strong>
-                <p>{{p.sku}}</p>
-              </div>
-              <strong>{{p.price | currency:'EUR'}}</strong>
-            </div>
-            <div class="mobile-meta">
-              <span>{{p.category}}</span>
-              <span>{{p.subcategory}}</span>
-              <span>Tax {{p.taxPercent || 0}}%</span>
-              <span>Unit {{p.unit || '-'}}</span>
-            </div>
-            <div class="actions">
-              <button mat-stroked-button color="primary" (click)="select(p)">Edit</button>
-              <button mat-button color="warn" (click)="deleteProduct(p)" [disabled]="deletingId === p.id">Delete</button>
-            </div>
-          </article>
-        </div>
-        <p *ngIf="!loading && products.length === 0" class="blank">No products found.</p>
-        <p *ngIf="loading" class="blank">Loading products...</p>
-      </div>
-      <mat-paginator *ngIf="products.length > 0"
-                     [length]="products.length"
-                     [pageIndex]="pageIndex"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[6, 8, 12]"
-                     (page)="onPage($event)">
-      </mat-paginator>
-    </mat-card>
-
-    <mat-card class="editor-card" *ngIf="selected">
-      <h4>Edit Product: {{selected.name}}</h4>
-      <div class="grid">
+      <div class="grid" *ngIf="selected && !creatingInline">
         <label>SKU
-          <input [value]="selected.sku" disabled />
+          <input [(ngModel)]="edit.sku" disabled />
         </label>
         <label>Name
           <input [(ngModel)]="edit.name" />
+        </label>
+        <label>Category
+          <input [(ngModel)]="edit.category" disabled />
+        </label>
+        <label>Subcategory
+          <input [(ngModel)]="edit.subcategory" disabled />
         </label>
         <label>Price (EUR)
           <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
@@ -150,17 +186,24 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
         </label>
       </div>
 
-      <div class="image-zone">
+      <div class="editor-actions" *ngIf="creatingInline">
+        <button mat-raised-button color="primary" (click)="createProduct()" [disabled]="creating">
+          {{creating ? 'Saving...' : 'Save Product'}}
+        </button>
+        <button mat-button (click)="cancelCreate()">Cancel</button>
+      </div>
+
+      <div class="image-zone" *ngIf="selected && !creatingInline">
         <img [src]="selected.imageUrl || 'https://placehold.co/220x140'" alt="product image" />
         <div>
           <p class="path">{{selected.imageUrl || 'No image set'}}</p>
           <input type="file" accept="image/*" (change)="onFileSelected($event)" />
-          <div class="btn-row">
+          <div class="editor-actions">
             <button mat-stroked-button (click)="uploadImage()" [disabled]="!selectedFile || savingImage">
               {{savingImage ? 'Uploading...' : 'Upload Image'}}
             </button>
             <button mat-raised-button color="primary" (click)="saveDetails()" [disabled]="savingDetails">
-              {{savingDetails ? 'Saving...' : 'Save Details'}}
+              {{savingDetails ? 'Saving...' : 'Save Changes'}}
             </button>
           </div>
         </div>
@@ -171,26 +214,35 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     <p class="ok" *ngIf="message">{{message}}</p>
   `,
   styles: [`
+    :host { display: block; overflow-x: hidden; }
     .muted { color: #587067; margin-top: -.25rem; }
-    .section-card, .editor-card { border-radius: 14px; margin-top: .8rem; }
-    .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; }
+    .section-card, .editor-card { border-radius: 14px; margin-top: .8rem; overflow: hidden; }
+    .toolbar { display: flex; gap: .5rem; margin: .1rem 0 .9rem; align-items: center; flex-wrap: wrap; }
     .page-note { margin: -.2rem 0 .8rem; color: #587067; font-size: .92rem; }
-    .search { flex: 1; max-width: 420px; padding: .5rem .65rem; border: 1px solid #cfdad4; border-radius: 8px; }
-    .scroll-wrap { max-height: 52vh; overflow: auto; border: 1px solid #e2ebe6; border-radius: 10px; background: #fff; }
-    .table { width: 100%; border-collapse: collapse; min-width: 840px; }
-    .table th, .table td { padding: .55rem; border-bottom: 1px solid #e2ebe6; text-align: left; }
-    .table thead th { position: sticky; top: 0; background: #f2f8f4; z-index: 1; }
+    .search { flex: 1; min-width: 220px; max-width: 420px; padding: .5rem .65rem; border: 1px solid #cfdad4; border-radius: 8px; }
+    .table-shell { border: 1px solid #e2ebe6; border-radius: 10px; background: #fff; overflow: hidden; }
+    .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .table th, .table td { padding: .7rem; border-bottom: 1px solid #e2ebe6; text-align: left; }
+    .table thead th { background: #f2f8f4; }
+    .table tr { cursor: pointer; }
     .table tr.selected { background: #eef7f2; }
+    .table tr.new-row { cursor: default; }
+    .table input { width: 100%; padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; box-sizing: border-box; }
+    .act-col { width: 180px; }
+    .actions { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap; }
     .mobile-list { display: none; padding: .7rem; gap: .7rem; }
     .mobile-product { border: 1px solid #dfe8e3; border-radius: 12px; padding: .85rem; background: #fbfdfc; }
     .mobile-product.selected { border-color: #91b8a5; background: #eef7f2; }
     .mobile-head { display: flex; justify-content: space-between; gap: .75rem; }
     .mobile-head p { margin: .15rem 0 0; color: #60766c; }
-    .mobile-meta { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .75rem; }
-    .mobile-meta span { background: #eef4f1; border-radius: 999px; padding: .2rem .55rem; font-size: .84rem; color: #355448; }
-    .act-col { width: 180px; text-align: center; }
-    .actions { display: flex; gap: .35rem; justify-content: center; flex-wrap: wrap; }
+    .mobile-actions { display: flex; gap: .45rem; justify-content: flex-end; flex-wrap: wrap; margin-top: .75rem; }
+    .mobile-product label { display: flex; flex-direction: column; gap: .25rem; color: #456458; margin-bottom: .6rem; }
+    .mobile-product input { padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; }
     .blank { margin: .8rem; color: #5a7067; }
+    .table-footer { display: flex; justify-content: flex-end; padding-top: .8rem; }
+    .editor-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .9rem; }
+    .editor-head h4 { margin: 0; }
+    .editor-hint { margin: .2rem 0 0; color: #60766c; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
     .grid label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: #456458; }
     .grid input, .grid textarea { padding: .45rem .55rem; border: 1px solid #cfdad4; border-radius: 8px; }
@@ -198,7 +250,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
     .image-zone { margin-top: .8rem; display: grid; grid-template-columns: 220px 1fr; gap: .9rem; align-items: start; }
     .image-zone img { width: 220px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #d8e4de; }
     .path { font-size: .8rem; color: #6f8278; margin: 0 0 .5rem; word-break: break-all; }
-    .btn-row { margin-top: .7rem; display: flex; gap: .6rem; flex-wrap: wrap; }
+    .editor-actions { margin-top: .9rem; display: flex; gap: .6rem; flex-wrap: wrap; }
     mat-paginator { margin-top: .8rem; border: 1px solid #e2ebe6; border-radius: 12px; background: #fbfdfc; }
     .error { color: #b42318; margin-top: .6rem; }
     .ok { color: #126b2f; margin-top: .6rem; }
@@ -207,11 +259,13 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
       .image-zone { grid-template-columns: 1fr; }
     }
     @media (max-width: 860px) {
-      .toolbar { flex-wrap: wrap; }
       .search { max-width: none; width: 100%; }
       .desktop-table { display: none; }
       .mobile-list { display: grid; }
-      .scroll-wrap { max-height: none; }
+      .table-shell { overflow: visible; }
+      .table-footer { justify-content: stretch; }
+      .table-footer button { width: 100%; }
+      .editor-head { flex-direction: column; }
     }
   `]
 })
@@ -225,6 +279,7 @@ export class AdminProductsComponent {
   savingDetails = false;
   savingImage = false;
   creating = false;
+  creatingInline = false;
   deletingId: number | null = null;
   error = '';
   message = '';
@@ -234,7 +289,10 @@ export class AdminProductsComponent {
   pageSize = 8;
   draft: ProductCreateRequest = this.emptyDraft();
   edit = {
+    sku: '',
     name: '',
+    category: '',
+    subcategory: '',
     price: 0,
     taxPercent: 0,
     discountPercent: 0,
@@ -280,11 +338,34 @@ export class AdminProductsComponent {
     this.reload();
   }
 
+  startCreate(): void {
+    this.error = '';
+    this.message = '';
+    this.creatingInline = true;
+    this.selected = null;
+    this.selectedFile = null;
+    this.draft = this.emptyDraft();
+  }
+
+  cancelCreate(): void {
+    this.creatingInline = false;
+    this.draft = this.emptyDraft();
+  }
+
+  closeSelection(): void {
+    this.selected = null;
+    this.selectedFile = null;
+  }
+
   select(product: Product): void {
+    this.creatingInline = false;
     this.selected = product;
     this.selectedFile = null;
     this.edit = {
+      sku: product.sku || '',
       name: product.name || '',
+      category: product.category || '',
+      subcategory: product.subcategory || '',
       price: Number(product.price || 0),
       taxPercent: Number(product.taxPercent || 0),
       discountPercent: Number(product.discountPercent || 0),
@@ -316,10 +397,11 @@ export class AdminProductsComponent {
     }).subscribe({
       next: (product) => {
         this.creating = false;
+        this.creatingInline = false;
         this.message = 'Product added successfully.';
-        this.draft = this.emptyDraft();
         this.products = [product, ...this.products];
         this.pageIndex = 0;
+        this.select(product);
       },
       error: (err) => {
         this.creating = false;
