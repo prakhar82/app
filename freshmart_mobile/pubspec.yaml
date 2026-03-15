@@ -1,0 +1,28 @@
+name: freshmart_mobile
+description: FreshMart Mobile Flutter client for the existing FreshMart backend.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  dio: ^5.7.0
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+  jwt_decoder: ^2.0.1
+  webview_flutter: ^4.9.0
+  webview_windows: ^0.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
