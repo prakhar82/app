@@ -101,6 +101,39 @@ Key envs:
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `APP_CORS_ALLOWED_ORIGINS`
 
+## Environment Templates
+
+Ready-made templates are included:
+
+- `.env.local.example`
+- `.env.vm.example`
+- `.env.local`
+- `.env.vm`
+
+Local machine:
+
+```powershell
+.\start-local.ps1
+```
+
+VM:
+
+```bash
+chmod +x ./start-vm.sh
+./start-vm.sh
+```
+
+The app is IP-configurable through:
+
+- `FRONTEND_URL`
+- `APP_CORS_ALLOWED_ORIGINS`
+
+No code changes are needed when moving between local Docker and a VM.
+The runtime env file is selected by the command:
+
+- local uses `docker compose --env-file .env.local ...`
+- VM uses `docker compose --env-file .env.vm ...`
+
 ## Common Issues
 
 ### Initial 502 right after `docker compose up`
@@ -143,6 +176,7 @@ For a low-cost single-VM deployment (recommended for quick global access), use:
 - `docker/azure/README-AZURE-FREE.md`
 - `docker/azure/deploy-free.ps1`
 - `docker/azure/cloud-init-compose.yaml`
+- `docker/azure/setup-vm.sh`
 
 ### Target Azure Services
 
