@@ -431,7 +431,23 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ],
           ),
-          body: admin.loading ? const Center(child: CircularProgressIndicator()) : pages[_index],
+          body: admin.loading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    if (admin.error != null && admin.error!.isNotEmpty)
+                      MaterialBanner(
+                        content: Text(admin.error!),
+                        actions: [
+                          TextButton(
+                            onPressed: () => admin.loadDashboard(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    Expanded(child: pages[_index]),
+                  ],
+                ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: (index) => setState(() => _index = index),

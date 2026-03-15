@@ -10,15 +10,21 @@ class CatalogProvider extends ChangeNotifier {
 
   List<Product> _products = [];
   bool _loading = false;
+  String? _error;
 
   List<Product> get products => _products;
   bool get loading => _loading;
+  String? get error => _error;
 
   Future<void> loadProducts() async {
     _loading = true;
+    _error = null;
     notifyListeners();
     try {
       _products = await _catalogApi.fetchProducts();
+    } catch (error) {
+      _products = [];
+      _error = error.toString();
     } finally {
       _loading = false;
       notifyListeners();

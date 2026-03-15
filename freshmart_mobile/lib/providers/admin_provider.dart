@@ -13,15 +13,27 @@ class AdminProvider extends ChangeNotifier {
   List<InventoryItem> inventory = [];
   List<AdminUser> users = [];
   bool loading = false;
+  String? error;
 
   Future<void> loadDashboard() async {
     loading = true;
+    error = null;
     notifyListeners();
     try {
-      summary = await _adminApi.fetchSummary();
-      orders = await _adminApi.fetchAdminOrders();
-      inventory = await _adminApi.fetchInventory();
-      users = await _adminApi.fetchUsers();
+      try {
+        summary = await _adminApi.fetchSummary();
+      } catch (_) {}
+      try {
+        orders = await _adminApi.fetchAdminOrders();
+      } catch (_) {}
+      try {
+        inventory = await _adminApi.fetchInventory();
+      } catch (_) {}
+      try {
+        users = await _adminApi.fetchUsers();
+      } catch (_) {}
+    } catch (err) {
+      error = err.toString();
     } finally {
       loading = false;
       notifyListeners();

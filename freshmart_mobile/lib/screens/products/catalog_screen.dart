@@ -73,6 +73,28 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     padding: EdgeInsets.only(top: 48),
                     child: Center(child: CircularProgressIndicator()),
                   )
+                else if (catalog.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 48),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const Text('Could not load catalog'),
+                          const SizedBox(height: 8),
+                          Text(
+                            catalog.error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.red.shade700),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonal(
+                            onPressed: catalog.loadProducts,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 else if (products.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 48),
