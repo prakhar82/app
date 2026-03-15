@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 
 public record ProductUpdateRequest(
         @NotBlank String name,
+        @NotBlank String category,
+        @NotBlank String subcategory,
         @NotNull @DecimalMin("0.0") BigDecimal price,
         @NotNull @DecimalMin("0.0") BigDecimal taxPercent,
         @DecimalMin("0.0") BigDecimal discountPercent,

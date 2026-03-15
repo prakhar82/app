@@ -6,6 +6,7 @@ import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {ActivatedRoute} from '@angular/router';
 import {FormsModule} from '@angular/forms';
 import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-api.service';
+import {CatalogApiService, Product} from '../../../core/api/catalog-api.service';
 
 @Component({
   selector: 'app-admin-inventory',
@@ -28,6 +29,8 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
           <tr>
             <th>SKU</th>
             <th>Product</th>
+            <th>Category</th>
+            <th>Subcategory</th>
             <th>Total</th>
             <th>Reserved</th>
             <th>Available</th>
@@ -40,6 +43,8 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
             <tr [class.focus]="item.sku === focusSku || selectedSku === item.sku" (click)="toggleEdit(item)">
               <td>{{item.sku}}</td>
               <td>{{item.productName}}</td>
+              <td>{{categoryFor(item)}}</td>
+              <td>{{subcategoryFor(item)}}</td>
               <td>{{item.totalQty}}</td>
               <td>{{item.reservedQty}}</td>
               <td>{{item.availableQty}}</td>
@@ -50,7 +55,7 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
               </td>
             </tr>
             <tr class="detail-row" *ngIf="selectedSku === item.sku">
-              <td colspan="7">
+              <td colspan="9">
                 <div class="detail-panel open">
                   <div class="detail-head">
                     <strong>Edit Inventory</strong>
@@ -62,6 +67,12 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
                     </label>
                     <label>Product
                       <input [ngModel]="item.productName" disabled />
+                    </label>
+                    <label>Category
+                      <input [ngModel]="categoryFor(item)" disabled />
+                    </label>
+                    <label>Subcategory
+                      <input [ngModel]="subcategoryFor(item)" disabled />
                     </label>
                     <label>Total Quantity
                       <input type="number" [(ngModel)]="editTotalQty" min="0" />
@@ -102,6 +113,7 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
               <strong>{{item.availableQty}} available</strong>
             </div>
             <div class="mobile-meta">
+              <span>{{categoryFor(item)}} / {{subcategoryFor(item)}}</span>
               <span>Total {{item.totalQty}}</span>
               <span>Reserved {{item.reservedQty}}</span>
               <span>Threshold {{item.reorderThreshold}}</span>
@@ -121,6 +133,12 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
                 </label>
                 <label>Product
                   <input [ngModel]="item.productName" disabled />
+                </label>
+                <label>Category
+                  <input [ngModel]="categoryFor(item)" disabled />
+                </label>
+                <label>Subcategory
+                  <input [ngModel]="subcategoryFor(item)" disabled />
                 </label>
                 <label>Total Quantity
                   <input type="number" [(ngModel)]="editTotalQty" min="0" />
@@ -239,9 +257,11 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
 })
 export class AdminInventoryComponent {
   private inventoryApi = inject(InventoryApiService);
+  private catalogApi = inject(CatalogApiService);
   private route = inject(ActivatedRoute);
 
   items: InventoryItem[] = [];
+  products: Product[] = [];
   focusSku = '';
   error = '';
   saving = false;
@@ -257,6 +277,10 @@ export class AdminInventoryComponent {
   constructor() {
     this.focusSku = this.route.snapshot.queryParamMap.get('sku') || '';
     this.reload();
+    this.catalogApi.listAdminProducts().subscribe({
+      next: (products) => this.products = products,
+      error: () => this.products = []
+    });
   }
 
   reload(): void {
@@ -373,6 +397,18 @@ export class AdminInventoryComponent {
 
   availablePreview(item: InventoryItem): number {
     return Math.max(this.editTotalQty - item.reservedQty, 0);
+  }
+
+  categoryFor(item: InventoryItem): string {
+    return this.productFor(item)?.category || 'Unknown';
+  }
+
+  subcategoryFor(item: InventoryItem): string {
+    return this.productFor(item)?.subcategory || 'General';
+  }
+
+  private productFor(item: InventoryItem): Product | undefined {
+    return this.products.find(product => product.sku === item.sku);
   }
 
   private ensureValidPage(): void {

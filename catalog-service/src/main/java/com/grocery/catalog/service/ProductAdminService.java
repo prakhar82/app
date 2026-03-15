@@ -47,7 +47,24 @@ public class ProductAdminService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new DomainException("PRODUCT_NOT_FOUND", "Product not found: " + id));
 
+        Category category = categoryRepository.findByNameIgnoreCase(request.category().trim())
+                .orElseGet(() -> {
+                    Category created = new Category();
+                    created.setName(request.category().trim());
+                    return categoryRepository.save(created);
+                });
+        Subcategory subcategory = subcategoryRepository
+                .findByNameIgnoreCaseAndCategory(request.subcategory().trim(), category)
+                .orElseGet(() -> {
+                    Subcategory created = new Subcategory();
+                    created.setCategory(category);
+                    created.setName(request.subcategory().trim());
+                    return subcategoryRepository.save(created);
+                });
+
         product.setName(request.name().trim());
+        product.setCategory(category);
+        product.setSubcategory(subcategory);
         product.setPrice(request.price());
         product.setTaxPercent(request.taxPercent());
         product.setDiscountPercent(request.discountPercent() == null ? BigDecimal.ZERO : request.discountPercent());

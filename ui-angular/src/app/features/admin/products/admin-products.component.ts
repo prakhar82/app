@@ -63,10 +63,16 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
                     <input [(ngModel)]="draft.name" />
                   </label>
                   <label>Category
-                    <input [(ngModel)]="draft.category" />
+                    <select [(ngModel)]="draft.category" (ngModelChange)="onDraftCategoryChange()">
+                      <option value="">Select category</option>
+                      <option *ngFor="let category of categoryOptions()" [value]="category">{{category}}</option>
+                    </select>
                   </label>
                   <label>Subcategory
-                    <input [(ngModel)]="draft.subcategory" />
+                    <select [(ngModel)]="draft.subcategory">
+                      <option value="">Select subcategory</option>
+                      <option *ngFor="let subcategory of subcategoryOptions(draft.category, draft.subcategory)" [value]="subcategory">{{subcategory}}</option>
+                    </select>
                   </label>
                   <label>Price (EUR)
                     <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
@@ -132,10 +138,16 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
                       <input [(ngModel)]="edit.name" />
                     </label>
                     <label>Category
-                      <input [(ngModel)]="edit.category" disabled />
+                      <select [(ngModel)]="edit.category" (ngModelChange)="onEditCategoryChange()">
+                        <option value="">Select category</option>
+                        <option *ngFor="let category of categoryOptions()" [value]="category">{{category}}</option>
+                      </select>
                     </label>
                     <label>Subcategory
-                      <input [(ngModel)]="edit.subcategory" disabled />
+                      <select [(ngModel)]="edit.subcategory">
+                        <option value="">Select subcategory</option>
+                        <option *ngFor="let subcategory of subcategoryOptions(edit.category, edit.subcategory)" [value]="subcategory">{{subcategory}}</option>
+                      </select>
                     </label>
                     <label>Price (EUR)
                       <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
@@ -205,10 +217,16 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
                   <input [(ngModel)]="draft.name" />
                 </label>
                 <label>Category
-                  <input [(ngModel)]="draft.category" />
+                  <select [(ngModel)]="draft.category" (ngModelChange)="onDraftCategoryChange()">
+                    <option value="">Select category</option>
+                    <option *ngFor="let category of categoryOptions()" [value]="category">{{category}}</option>
+                  </select>
                 </label>
                 <label>Subcategory
-                  <input [(ngModel)]="draft.subcategory" />
+                  <select [(ngModel)]="draft.subcategory">
+                    <option value="">Select subcategory</option>
+                    <option *ngFor="let subcategory of subcategoryOptions(draft.category, draft.subcategory)" [value]="subcategory">{{subcategory}}</option>
+                  </select>
                 </label>
                 <label>Price (EUR)
                   <input type="number" min="0" step="0.01" [(ngModel)]="draft.price" />
@@ -272,10 +290,16 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
                   <input [(ngModel)]="edit.name" />
                 </label>
                 <label>Category
-                  <input [(ngModel)]="edit.category" disabled />
+                  <select [(ngModel)]="edit.category" (ngModelChange)="onEditCategoryChange()">
+                    <option value="">Select category</option>
+                    <option *ngFor="let category of categoryOptions()" [value]="category">{{category}}</option>
+                  </select>
                 </label>
                 <label>Subcategory
-                  <input [(ngModel)]="edit.subcategory" disabled />
+                  <select [(ngModel)]="edit.subcategory">
+                    <option value="">Select subcategory</option>
+                    <option *ngFor="let subcategory of subcategoryOptions(edit.category, edit.subcategory)" [value]="subcategory">{{subcategory}}</option>
+                  </select>
                 </label>
                 <label>Price (EUR)
                   <input type="number" min="0" step="0.01" [(ngModel)]="edit.price" />
@@ -416,6 +440,7 @@ import {CatalogApiService, Product, ProductCreateRequest} from '../../../core/ap
       font-size: .9rem;
     }
     .detail-grid input,
+    .detail-grid select,
     .detail-grid textarea {
       width: 100%;
       box-sizing: border-box;
@@ -631,6 +656,8 @@ export class AdminProductsComponent {
     this.message = '';
     this.catalogApi.updateProduct(this.selected.id, {
       name: this.edit.name,
+      category: this.edit.category,
+      subcategory: this.edit.subcategory,
       price: Number(this.edit.price),
       taxPercent: Number(this.edit.taxPercent),
       discountPercent: Number(this.edit.discountPercent || 0),
@@ -778,6 +805,52 @@ export class AdminProductsComponent {
     const totalPages = Math.max(1, Math.ceil(this.products.length / this.productPageSize));
     if (this.productPageIndex >= totalPages) {
       this.productPageIndex = 0;
+    }
+  }
+
+  categoryOptions(): string[] {
+    const values = new Set<string>();
+    for (const product of this.products) {
+      const category = (product.category || '').trim();
+      if (category) {
+        values.add(category);
+      }
+    }
+    if (this.draft.category?.trim()) {
+      values.add(this.draft.category.trim());
+    }
+    if (this.edit.category?.trim()) {
+      values.add(this.edit.category.trim());
+    }
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }
+
+  subcategoryOptions(category: string, current?: string): string[] {
+    const values = new Set<string>();
+    const normalizedCategory = (category || '').trim().toLowerCase();
+    for (const product of this.products) {
+      if ((product.category || '').trim().toLowerCase() === normalizedCategory) {
+        const subcategory = (product.subcategory || '').trim();
+        if (subcategory) {
+          values.add(subcategory);
+        }
+      }
+    }
+    if (current?.trim()) {
+      values.add(current.trim());
+    }
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }
+
+  onDraftCategoryChange(): void {
+    if (!this.subcategoryOptions(this.draft.category, this.draft.subcategory).includes(this.draft.subcategory)) {
+      this.draft.subcategory = '';
+    }
+  }
+
+  onEditCategoryChange(): void {
+    if (!this.subcategoryOptions(this.edit.category, this.edit.subcategory).includes(this.edit.subcategory)) {
+      this.edit.subcategory = '';
     }
   }
 }

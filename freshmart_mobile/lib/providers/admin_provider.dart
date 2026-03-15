@@ -12,6 +12,7 @@ class AdminProvider extends ChangeNotifier {
   List<OrderModel> orders = [];
   List<InventoryItem> inventory = [];
   List<AdminUser> users = [];
+  List<Product> products = [];
   bool loading = false;
   String? error;
 
@@ -31,6 +32,9 @@ class AdminProvider extends ChangeNotifier {
       } catch (_) {}
       try {
         users = await _adminApi.fetchUsers();
+      } catch (_) {}
+      try {
+        products = await _adminApi.fetchAdminProducts();
       } catch (_) {}
     } catch (err) {
       error = err.toString();
@@ -56,6 +60,11 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshProducts() async {
+    products = await _adminApi.fetchAdminProducts();
+    notifyListeners();
+  }
+
   Future<void> updateOrderStatus({
     required String orderRef,
     required String status,
@@ -75,6 +84,21 @@ class AdminProvider extends ChangeNotifier {
       sku: sku,
       quantityDelta: quantityDelta,
       reason: reason,
+      reorderThreshold: reorderThreshold,
+    );
+    await refreshInventory();
+  }
+
+  Future<void> upsertInventory({
+    required String sku,
+    required String productName,
+    required int quantityDelta,
+    int? reorderThreshold,
+  }) async {
+    await _adminApi.upsertInventory(
+      sku: sku,
+      productName: productName,
+      quantityDelta: quantityDelta,
       reorderThreshold: reorderThreshold,
     );
     await refreshInventory();
@@ -111,5 +135,64 @@ class AdminProvider extends ChangeNotifier {
   Future<void> deleteUser(int id) async {
     await _adminApi.deleteUser(id);
     await refreshUsers();
+  }
+
+  Future<void> createProduct({
+    required String sku,
+    required String name,
+    required String category,
+    required String subcategory,
+    required double price,
+    required double taxPercent,
+    required double discountPercent,
+    required String unit,
+    String? description,
+    String? imageUrl,
+  }) async {
+    await _adminApi.createProduct(
+      sku: sku,
+      name: name,
+      category: category,
+      subcategory: subcategory,
+      price: price,
+      taxPercent: taxPercent,
+      discountPercent: discountPercent,
+      unit: unit,
+      description: description,
+      imageUrl: imageUrl,
+    );
+    await refreshProducts();
+  }
+
+  Future<void> updateProduct({
+    required int id,
+    required String name,
+    required String category,
+    required String subcategory,
+    required double price,
+    required double taxPercent,
+    required double discountPercent,
+    required String unit,
+    String? description,
+    String? imageUrl,
+  }) async {
+    await _adminApi.updateProduct(
+      id: id,
+      name: name,
+      category: category,
+      subcategory: subcategory,
+      price: price,
+      taxPercent: taxPercent,
+      discountPercent: discountPercent,
+      unit: unit,
+      description: description,
+      imageUrl: imageUrl,
+    );
+    await refreshProducts();
+  }
+
+  Future<void> deleteProduct(int id) async {
+    await _adminApi.deleteProduct(id);
+    await refreshProducts();
   }
 }

@@ -180,6 +180,8 @@ export class CatalogApiService {
 
   updateProduct(id: number, request: {
     name: string;
+    category: string;
+    subcategory: string;
     price: number;
     taxPercent: number;
     discountPercent?: number;

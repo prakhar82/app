@@ -37,6 +37,21 @@ class AdminApiService {
     return (response.data as List).map((e) => InventoryItem.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<InventoryItem> upsertInventory({
+    required String sku,
+    required String productName,
+    required int quantityDelta,
+    int? reorderThreshold,
+  }) async {
+    final response = await _client.dio.post('/inventory/inventory/admin/upsert', data: {
+      'sku': sku,
+      'productName': productName,
+      'quantityDelta': quantityDelta,
+      'reorderThreshold': reorderThreshold,
+    });
+    return InventoryItem.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<InventoryItem> adjustInventory({
     required String sku,
     required int quantityDelta,
@@ -98,6 +113,68 @@ class AdminApiService {
 
   Future<void> deleteUser(int id) async {
     await _client.dio.delete('/identity/admin/users/$id');
+  }
+
+  Future<List<Product>> fetchAdminProducts() async {
+    final response = await _client.dio.get('/catalog/catalog/admin/products');
+    return (response.data as List).map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Product> createProduct({
+    required String sku,
+    required String name,
+    required String category,
+    required String subcategory,
+    required double price,
+    required double taxPercent,
+    required double discountPercent,
+    required String unit,
+    String? description,
+    String? imageUrl,
+  }) async {
+    final response = await _client.dio.post('/catalog/catalog/admin/products', data: {
+      'sku': sku,
+      'name': name,
+      'category': category,
+      'subcategory': subcategory,
+      'price': price,
+      'taxPercent': taxPercent,
+      'discountPercent': discountPercent,
+      'unit': unit,
+      'description': description,
+      'imageUrl': imageUrl,
+    });
+    return Product.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Product> updateProduct({
+    required int id,
+    required String name,
+    required String category,
+    required String subcategory,
+    required double price,
+    required double taxPercent,
+    required double discountPercent,
+    required String unit,
+    String? description,
+    String? imageUrl,
+  }) async {
+    final response = await _client.dio.patch('/catalog/catalog/admin/products/$id', data: {
+      'name': name,
+      'category': category,
+      'subcategory': subcategory,
+      'price': price,
+      'taxPercent': taxPercent,
+      'discountPercent': discountPercent,
+      'unit': unit,
+      'description': description,
+      'imageUrl': imageUrl,
+    });
+    return Product.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteProduct(int id) async {
+    await _client.dio.delete('/catalog/catalog/admin/products/$id');
   }
 
   Future<void> uploadInventory(Uint8List bytes, String fileName) async {
