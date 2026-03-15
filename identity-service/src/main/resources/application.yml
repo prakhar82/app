@@ -6,6 +6,10 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/identity_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  servlet:
+    multipart:
+      max-file-size: ${MULTIPART_MAX_FILE_SIZE:100MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:100MB}
 
   jpa:
     hibernate:

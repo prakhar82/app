@@ -1,6 +1,8 @@
 server:
   port: 8080
 spring:
+  codec:
+    max-in-memory-size: ${SPRING_CODEC_MAX_IN_MEMORY_SIZE:100MB}
   cloud:
     gateway:
       globalcors:

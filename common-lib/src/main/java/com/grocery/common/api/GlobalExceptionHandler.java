@@ -10,6 +10,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.time.Instant;
 import java.util.List;
@@ -50,6 +52,17 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 request.getHeader("X-Correlation-Id"),
                 List.of()));
+    }
+
+    @ExceptionHandler({MaxUploadSizeExceededException.class, MultipartException.class})
+    public ResponseEntity<ApiError> handleMultipart(Exception ex, HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(new ApiError(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "MULTIPART_ERROR",
+                "Uploaded file is too large or invalid. Increase the multipart limit or use a smaller backup zip.",
+                request.getHeader("X-Correlation-Id"),
+                List.of(ex.getClass().getSimpleName())));
     }
 
     @ExceptionHandler(Exception.class)
