@@ -3,6 +3,7 @@ package com.grocery.catalog.repo;
 import com.grocery.catalog.domain.ProductReview;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -21,7 +22,7 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
             where r.product.id in :productIds
             group by r.product.id
             """)
-    List<ProductReviewSummaryView> summarizeByProductIds(Collection<Long> productIds);
+    List<ProductReviewSummaryView> summarizeByProductIds(@Param("productIds") Collection<Long> productIds);
 
     interface ProductReviewSummaryView {
         Long getProductId();
