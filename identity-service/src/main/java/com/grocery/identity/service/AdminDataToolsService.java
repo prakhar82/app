@@ -1,6 +1,5 @@
 package com.grocery.identity.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grocery.common.api.DomainException;
 import com.lowagie.text.Document;
@@ -100,6 +99,8 @@ public class AdminDataToolsService {
             }
         } catch (IOException ex) {
             throw new DomainException("BACKUP_INVALID", "Unable to read backup zip");
+        } catch (SQLException ex) {
+            throw new DomainException("BACKUP_RESTORE_FAILED", "Unable to restore backup data");
         }
     }
 
@@ -360,7 +361,8 @@ public class AdminDataToolsService {
     }
 
     private byte[] createPdf(List<String> headers, List<List<String>> rows, String title) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Document document = new Document(PageSize.A4.rotate(), 24, 24, 24, 24);
             PdfWriter.getInstance(document, baos);
             document.open();
