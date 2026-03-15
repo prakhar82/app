@@ -13,6 +13,8 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -34,6 +37,7 @@ import java.util.zip.ZipOutputStream;
 
 @Service
 public class AdminDataToolsService {
+    private static final Logger log = LoggerFactory.getLogger(AdminDataToolsService.class);
     private static final DateTimeFormatter FILE_TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
     private static final String BACKUP_JSON = "backup.json";
 
@@ -100,6 +104,7 @@ public class AdminDataToolsService {
         } catch (IOException ex) {
             throw new DomainException("BACKUP_INVALID", "Unable to read backup zip");
         } catch (SQLException ex) {
+            log.error("Backup restore failed", ex);
             throw new DomainException("BACKUP_RESTORE_FAILED", "Unable to restore backup data");
         }
     }
@@ -186,15 +191,25 @@ public class AdminDataToolsService {
 
     private void restoreDatabase(DbSpec dbSpec, DatabaseBackup backup) throws SQLException {
         try (Connection connection = open(dbSpec.url())) {
-            connection.setAutoCommit(false);
-            execute(connection, "SET session_replication_role = replica");
-            truncateTables(connection, dbSpec.tables());
-            for (TableBackup table : backup.tables()) {
-                insertRows(connection, table.table(), table.rows());
-                resetIdentitySequenceIfPresent(connection, table.table());
+            try {
+                connection.setAutoCommit(false);
+                execute(connection, "SET session_replication_role = replica");
+                truncateTables(connection, dbSpec.tables());
+                for (TableBackup table : backup.tables()) {
+                    insertRows(connection, table.table(), table.rows());
+                    resetIdentitySequenceIfPresent(connection, table.table());
+                }
+                execute(connection, "SET session_replication_role = DEFAULT");
+                connection.commit();
+            } catch (SQLException ex) {
+                connection.rollback();
+                throw ex;
+            } finally {
+                try {
+                    execute(connection, "SET session_replication_role = DEFAULT");
+                } catch (SQLException ignored) {
+                }
             }
-            execute(connection, "SET session_replication_role = DEFAULT");
-            connection.commit();
         }
     }
 
@@ -238,36 +253,111 @@ public class AdminDataToolsService {
             return;
         }
         List<String> columns = new ArrayList<>(rows.get(0).keySet());
+        Map<String, Integer> sqlTypes = columnSqlTypes(connection, table);
         String sql = "INSERT INTO " + table + " (" + String.join(", ", columns) + ") VALUES (" +
                 String.join(", ", Collections.nCopies(columns.size(), "?")) + ")";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             for (Map<String, Object> row : rows) {
                 for (int i = 0; i < columns.size(); i++) {
-                    Object value = row.get(columns.get(i));
-                    if (value instanceof Integer integer) {
-                        ps.setInt(i + 1, integer);
-                    } else if (value instanceof Long aLong) {
-                        ps.setLong(i + 1, aLong);
-                    } else if (value instanceof Double aDouble) {
-                        ps.setDouble(i + 1, aDouble);
-                    } else if (value instanceof Boolean aBoolean) {
-                        ps.setBoolean(i + 1, aBoolean);
-                    } else if (value instanceof BigDecimal decimal) {
-                        ps.setBigDecimal(i + 1, decimal);
-                    } else if (value instanceof Map || value instanceof List) {
-                        ps.setObject(i + 1, objectMapper.writeValueAsString(value), Types.OTHER);
-                    } else if (value == null) {
-                        ps.setObject(i + 1, null);
-                    } else {
-                        ps.setObject(i + 1, value);
-                    }
+                    String column = columns.get(i);
+                    Object value = row.get(column);
+                    bindValue(ps, i + 1, sqlTypes.getOrDefault(column, Types.OTHER), value);
                 }
                 ps.addBatch();
             }
             ps.executeBatch();
         } catch (IOException ex) {
             throw new SQLException("Unable to serialize backup value", ex);
+        } catch (SQLException ex) {
+            log.error("Failed to restore rows into table {} using columns {}", table, columns, ex);
+            throw ex;
         }
+    }
+
+    private Map<String, Integer> columnSqlTypes(Connection connection, String table) throws SQLException {
+        Map<String, Integer> sqlTypes = new HashMap<>();
+        try (PreparedStatement ps = connection.prepareStatement("SELECT * FROM " + table + " WHERE 1 = 0");
+             ResultSet rs = ps.executeQuery()) {
+            ResultSetMetaData meta = rs.getMetaData();
+            for (int i = 1; i <= meta.getColumnCount(); i++) {
+                sqlTypes.put(meta.getColumnLabel(i), meta.getColumnType(i));
+            }
+        }
+        return sqlTypes;
+    }
+
+    private void bindValue(PreparedStatement ps, int parameterIndex, int sqlType, Object value) throws SQLException, IOException {
+        if (value == null) {
+            ps.setNull(parameterIndex, sqlType);
+            return;
+        }
+
+        if (value instanceof Map || value instanceof List) {
+            ps.setObject(parameterIndex, objectMapper.writeValueAsString(value), Types.OTHER);
+            return;
+        }
+
+        switch (sqlType) {
+            case Types.BOOLEAN, Types.BIT -> ps.setBoolean(parameterIndex, asBoolean(value));
+            case Types.SMALLINT -> ps.setShort(parameterIndex, asNumber(value).shortValue());
+            case Types.INTEGER -> ps.setInt(parameterIndex, asNumber(value).intValue());
+            case Types.BIGINT -> ps.setLong(parameterIndex, asNumber(value).longValue());
+            case Types.FLOAT, Types.REAL -> ps.setFloat(parameterIndex, asNumber(value).floatValue());
+            case Types.DOUBLE -> ps.setDouble(parameterIndex, asNumber(value).doubleValue());
+            case Types.NUMERIC, Types.DECIMAL -> ps.setBigDecimal(parameterIndex, asBigDecimal(value));
+            case Types.TIMESTAMP -> ps.setTimestamp(parameterIndex, asTimestamp(value));
+            case Types.TIMESTAMP_WITH_TIMEZONE -> ps.setObject(parameterIndex, asOffsetDateTime(value));
+            case Types.DATE -> ps.setDate(parameterIndex, Date.valueOf(LocalDate.parse(String.valueOf(value))));
+            case Types.CHAR, Types.VARCHAR, Types.LONGVARCHAR, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR -> ps.setString(parameterIndex, String.valueOf(value));
+            default -> ps.setObject(parameterIndex, value);
+        }
+    }
+
+    private Number asNumber(Object value) {
+        if (value instanceof Number number) {
+            return number;
+        }
+        return new BigDecimal(String.valueOf(value));
+    }
+
+    private BigDecimal asBigDecimal(Object value) {
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        return new BigDecimal(String.valueOf(value));
+    }
+
+    private boolean asBoolean(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private Timestamp asTimestamp(Object value) {
+        if (value instanceof Timestamp timestamp) {
+            return timestamp;
+        }
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return Timestamp.from(offsetDateTime.toInstant());
+        }
+        if (value instanceof Instant instant) {
+            return Timestamp.from(instant);
+        }
+        return Timestamp.from(OffsetDateTime.parse(String.valueOf(value)).toInstant());
+    }
+
+    private OffsetDateTime asOffsetDateTime(Object value) {
+        if (value instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime;
+        }
+        if (value instanceof Instant instant) {
+            return instant.atOffset(ZoneOffset.UTC);
+        }
+        return OffsetDateTime.parse(String.valueOf(value));
     }
 
     private void truncateTables(Connection connection, List<String> tables) throws SQLException {
