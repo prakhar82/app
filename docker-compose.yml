@@ -35,6 +35,14 @@ services:
       VERIFICATION_MAX_ATTEMPTS: ${VERIFICATION_MAX_ATTEMPTS:-5}
       POSTCODE_ALLOWED_FROM: ${POSTCODE_ALLOWED_FROM:-5600}
       POSTCODE_ALLOWED_TO: ${POSTCODE_ALLOWED_TO:-5699}
+      IDENTITY_DB_URL: jdbc:postgresql://postgres:5432/identity_db
+      CATALOG_DB_URL: jdbc:postgresql://postgres:5432/catalog_db
+      INVENTORY_DB_URL: jdbc:postgresql://postgres:5432/inventory_db
+      CART_DB_URL: jdbc:postgresql://postgres:5432/cart_db
+      ORDER_DB_URL: jdbc:postgresql://postgres:5432/order_db
+      PAYMENT_DB_URL: jdbc:postgresql://postgres:5432/payment_db
+      ADMIN_TOOLS_DB_USERNAME: postgres
+      ADMIN_TOOLS_DB_PASSWORD: postgres
     depends_on: [postgres, mailhog]
 
   catalog-service:

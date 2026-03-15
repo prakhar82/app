@@ -1,55 +1,85 @@
 import {Routes} from '@angular/router';
 import {authGuard} from './core/auth/auth.guard';
-import {LoginComponent} from './core/auth/login.component';
-import {RegisterComponent} from './core/auth/register.component';
-import {VerifyEmailComponent} from './core/auth/verify-email.component';
-import {UserShellComponent} from './layouts/user-shell.component';
-import {AdminShellComponent} from './layouts/admin-shell.component';
-import {UserDashboardComponent} from './features/storefront/dashboard/user-dashboard.component';
-import {ProductListComponent} from './features/storefront/catalog/product-list.component';
-import {ProductDetailComponent} from './features/storefront/catalog/product-detail.component';
-import {CartComponent} from './features/storefront/cart/cart.component';
-import {OrdersComponent} from './features/storefront/orders/orders.component';
-import {CheckoutComponent} from './features/storefront/checkout/checkout.component';
-import {ProfileComponent} from './features/storefront/profile/profile.component';
-import {AdminDashboardComponent} from './features/admin/dashboard/admin-dashboard.component';
-import {AdminProductsComponent} from './features/admin/products/admin-products.component';
-import {AdminUploadComponent} from './features/admin/upload/admin-upload.component';
-import {AdminInventoryComponent} from './features/admin/inventory/admin-inventory.component';
-import {AdminOrdersComponent} from './features/admin/orders/admin-orders.component';
-import {AdminUsersComponent} from './features/admin/users/admin-users.component';
 
 export const routes: Routes = [
-  {path: 'login', component: LoginComponent},
-  {path: 'register', component: RegisterComponent},
-  {path: 'verify-email', component: VerifyEmailComponent},
+  {
+    path: 'login',
+    loadComponent: () => import('./core/auth/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./core/auth/register.component').then(m => m.RegisterComponent)
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./core/auth/verify-email.component').then(m => m.VerifyEmailComponent)
+  },
   {
     path: 'app',
-    component: UserShellComponent,
+    loadComponent: () => import('./layouts/user-shell.component').then(m => m.UserShellComponent),
     canActivate: [authGuard],
     children: [
-      {path: 'dashboard', component: UserDashboardComponent},
-      {path: 'products', component: ProductListComponent},
-      {path: 'products/:id', component: ProductDetailComponent},
-      {path: 'cart', component: CartComponent},
-      {path: 'orders', component: OrdersComponent},
-      {path: 'profile', component: ProfileComponent},
-      {path: 'checkout', component: CheckoutComponent},
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/storefront/dashboard/user-dashboard.component').then(m => m.UserDashboardComponent)
+      },
+      {
+        path: 'products',
+        loadComponent: () => import('./features/storefront/catalog/product-list.component').then(m => m.ProductListComponent)
+      },
+      {
+        path: 'products/:id',
+        loadComponent: () => import('./features/storefront/catalog/product-detail.component').then(m => m.ProductDetailComponent)
+      },
+      {
+        path: 'cart',
+        loadComponent: () => import('./features/storefront/cart/cart.component').then(m => m.CartComponent)
+      },
+      {
+        path: 'orders',
+        loadComponent: () => import('./features/storefront/orders/orders.component').then(m => m.OrdersComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/storefront/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      {
+        path: 'checkout',
+        loadComponent: () => import('./features/storefront/checkout/checkout.component').then(m => m.CheckoutComponent)
+      },
       {path: '', pathMatch: 'full', redirectTo: 'dashboard'}
     ]
   },
   {
     path: 'admin',
-    component: AdminShellComponent,
+    loadComponent: () => import('./layouts/admin-shell.component').then(m => m.AdminShellComponent),
     canActivate: [authGuard],
     data: {roles: ['ADMIN']},
     children: [
-      {path: 'dashboard', component: AdminDashboardComponent},
-      {path: 'products', component: AdminProductsComponent},
-      {path: 'upload', component: AdminUploadComponent},
-      {path: 'inventory', component: AdminInventoryComponent},
-      {path: 'users', component: AdminUsersComponent},
-      {path: 'orders', component: AdminOrdersComponent},
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/admin/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent)
+      },
+      {
+        path: 'products',
+        loadComponent: () => import('./features/admin/products/admin-products.component').then(m => m.AdminProductsComponent)
+      },
+      {
+        path: 'upload',
+        loadComponent: () => import('./features/admin/upload/admin-upload.component').then(m => m.AdminUploadComponent)
+      },
+      {
+        path: 'inventory',
+        loadComponent: () => import('./features/admin/inventory/admin-inventory.component').then(m => m.AdminInventoryComponent)
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./features/admin/users/admin-users.component').then(m => m.AdminUsersComponent)
+      },
+      {
+        path: 'orders',
+        loadComponent: () => import('./features/admin/orders/admin-orders.component').then(m => m.AdminOrdersComponent)
+      },
       {path: '', pathMatch: 'full', redirectTo: 'dashboard'}
     ]
   },
