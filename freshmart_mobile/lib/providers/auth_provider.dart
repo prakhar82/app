@@ -25,6 +25,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _session != null;
   bool get isBootstrapping => _bootstrapping;
   String? get email => _session?.email;
+  bool get isAdmin => _session?.role.toUpperCase() == 'ADMIN';
 
   Future<void> bootstrap() async {
     final stored = await _storage.readSession();

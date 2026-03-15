@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'core/services/api_client.dart';
+import 'core/services/admin_api_service.dart';
 import 'core/services/auth_api_service.dart';
 import 'core/services/biometric_service.dart';
 import 'core/services/catalog_api_service.dart';
@@ -10,6 +11,7 @@ import 'core/services/cart_api_service.dart';
 import 'core/services/order_api_service.dart';
 import 'core/services/profile_api_service.dart';
 import 'core/services/secure_storage_service.dart';
+import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
@@ -29,6 +31,7 @@ void main() {
         Provider.value(value: apiClient),
         Provider(create: (_) => BiometricService()),
         Provider(create: (context) => AuthApiService(context.read<ApiClient>())),
+        Provider(create: (context) => AdminApiService(context.read<ApiClient>())),
         Provider(create: (context) => CatalogApiService(context.read<ApiClient>())),
         Provider(create: (context) => CartApiService(context.read<ApiClient>())),
         Provider(create: (context) => OrderApiService(context.read<ApiClient>())),
@@ -40,6 +43,7 @@ void main() {
             biometricService: context.read<BiometricService>(),
           )..bootstrap(),
         ),
+        ChangeNotifierProvider(create: (context) => AdminProvider(context.read<AdminApiService>())),
         ChangeNotifierProvider(create: (context) => CatalogProvider(context.read<CatalogApiService>())),
         ChangeNotifierProvider(create: (context) => CartProvider(context.read<CartApiService>(), context.read<AuthProvider>())),
         ChangeNotifierProvider(create: (context) => OrderProvider(context.read<OrderApiService>(), context.read<AuthProvider>())),

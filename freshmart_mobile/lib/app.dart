@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
+import 'screens/admin/admin_home_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
@@ -26,7 +27,11 @@ class FreshMartApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFFF3F8F6),
           ),
-          home: auth.isBootstrapping ? const SplashScreen() : auth.isAuthenticated ? const HomeScreen() : const LoginScreen(),
+          home: auth.isBootstrapping
+              ? const SplashScreen()
+              : auth.isAuthenticated
+                  ? (auth.isAdmin ? const AdminHomeScreen() : const HomeScreen())
+                  : const LoginScreen(),
           routes: {
             RegisterScreen.routeName: (_) => const RegisterScreen(),
             ForgotPasswordScreen.routeName: (_) => const ForgotPasswordScreen(),

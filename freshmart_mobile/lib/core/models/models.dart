@@ -302,3 +302,84 @@ class CheckoutResponse {
         redirectUrl: json['redirectUrl'] as String?,
       );
 }
+
+class InventoryItem {
+  InventoryItem({
+    required this.id,
+    required this.sku,
+    required this.productName,
+    required this.totalQty,
+    required this.reservedQty,
+    required this.availableQty,
+    required this.reorderThreshold,
+  });
+
+  final int id;
+  final String sku;
+  final String productName;
+  final int totalQty;
+  final int reservedQty;
+  final int availableQty;
+  final int reorderThreshold;
+
+  factory InventoryItem.fromJson(Map<String, dynamic> json) => InventoryItem(
+        id: (json['id'] as num).toInt(),
+        sku: json['sku'] as String,
+        productName: json['productName'] as String,
+        totalQty: (json['totalQty'] as num).toInt(),
+        reservedQty: (json['reservedQty'] as num).toInt(),
+        availableQty: (json['availableQty'] as num).toInt(),
+        reorderThreshold: (json['reorderThreshold'] as num).toInt(),
+      );
+}
+
+class AdminUser {
+  AdminUser({
+    required this.id,
+    required this.email,
+    required this.role,
+    required this.status,
+    required this.googleVerified,
+    required this.createdAt,
+    this.name,
+    this.phone,
+  });
+
+  final int id;
+  final String email;
+  final String? name;
+  final String? phone;
+  final String role;
+  final String status;
+  final bool googleVerified;
+  final DateTime createdAt;
+
+  factory AdminUser.fromJson(Map<String, dynamic> json) => AdminUser(
+        id: (json['id'] as num).toInt(),
+        email: json['email'] as String,
+        name: json['name'] as String?,
+        phone: json['phone'] as String?,
+        role: json['role'] as String,
+        status: json['status'] as String,
+        googleVerified: json['googleVerified'] as bool? ?? false,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
+class AdminSummary {
+  AdminSummary({
+    required this.itemsSold,
+    required this.revenue,
+    required this.ordersInProcess,
+  });
+
+  final int itemsSold;
+  final double revenue;
+  final int ordersInProcess;
+
+  factory AdminSummary.fromJson(Map<String, dynamic> json) => AdminSummary(
+        itemsSold: (json['itemsSold'] as num?)?.toInt() ?? 0,
+        revenue: (json['revenue'] as num?)?.toDouble() ?? 0,
+        ordersInProcess: (json['ordersInProcess'] as num?)?.toInt() ?? 0,
+      );
+}
