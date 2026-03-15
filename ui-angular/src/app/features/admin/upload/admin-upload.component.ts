@@ -15,6 +15,16 @@ import {environment} from '../../../../environments/environment';
 
     <div class="grid">
       <mat-card class="tool-card">
+        <h4>Inventory Upload</h4>
+        <p>Upload the Excel inventory and catalog file here.</p>
+        <input type="file" accept=".xlsx,.xls" (change)="onUploadFile($event)" />
+        <button mat-raised-button color="primary" (click)="uploadInventory()" [disabled]="!uploadFile">
+          Upload Inventory Excel
+        </button>
+        <pre class="result" *ngIf="uploadResult">{{uploadResult | json}}</pre>
+      </mat-card>
+
+      <mat-card class="tool-card">
         <h4>Backup</h4>
         <p>Download full app-data backup as backup.zip.</p>
         <button mat-raised-button color="primary" (click)="downloadBackup()" [disabled]="busy === 'backup'">
@@ -73,6 +83,7 @@ import {environment} from '../../../../environments/environment';
     .tool-card input { width: 100%; }
     .tool-card.danger { border: 1px solid #efc1bb; background: #fff8f6; }
     .row { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .result { margin: 0; max-height: 220px; overflow: auto; padding: .7rem; border-radius: 10px; background: #f4f8f6; font-size: .82rem; }
     .ok { color: #126b2f; margin-top: .8rem; }
     .error { color: #b42318; margin-top: .8rem; }
   `]
@@ -83,6 +94,8 @@ export class AdminUploadComponent {
   error = '';
   message = '';
   restoreFile: File | null = null;
+  uploadFile: File | null = null;
+  uploadResult: any = null;
 
   downloadBackup(): void {
     this.busy = 'backup';
@@ -106,6 +119,31 @@ export class AdminUploadComponent {
   onRestoreFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.restoreFile = input.files && input.files.length > 0 ? input.files[0] : null;
+  }
+
+  onUploadFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.uploadFile = input.files && input.files.length > 0 ? input.files[0] : null;
+  }
+
+  uploadInventory(): void {
+    if (!this.uploadFile) {
+      return;
+    }
+    this.clearMessages();
+    this.uploadResult = null;
+    const form = new FormData();
+    form.append('file', this.uploadFile);
+    this.http.post(`${environment.apiBaseUrl}/catalog/catalog/admin/upload`, form).subscribe({
+      next: response => {
+        this.message = 'Inventory upload completed.';
+        this.uploadResult = response;
+        this.uploadFile = null;
+      },
+      error: err => {
+        this.error = err?.error?.message || 'Unable to upload inventory file.';
+      }
+    });
   }
 
   restoreBackup(): void {

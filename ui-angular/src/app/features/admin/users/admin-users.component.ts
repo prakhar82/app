@@ -21,7 +21,7 @@ import {
 
     <mat-card class="section-card">
       <div class="toolbar">
-        <input class="search" [(ngModel)]="query" type="text" placeholder="Filter by email, name, phone, or role" />
+        <input class="search" [(ngModel)]="query" (ngModelChange)="onQueryChange()" type="text" placeholder="Filter by email, name, phone, or role" />
         <button mat-stroked-button color="primary" (click)="startCreate()" [disabled]="creatingInline">Add User</button>
       </div>
 
@@ -251,13 +251,14 @@ import {
         <p class="blank" *ngIf="filteredUsers().length === 0 && !creatingInline">No users found.</p>
       </div>
 
-      <mat-paginator *ngIf="filteredUsers().length > 0"
-                     [length]="filteredUsers().length"
-                     [pageIndex]="pageIndex"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[6, 8, 12]"
-                     (page)="onPage($event)">
-      </mat-paginator>
+      <div class="paginator-wrap" *ngIf="filteredUsers().length > 0">
+        <mat-paginator [length]="filteredUsers().length"
+                       [pageIndex]="pageIndex"
+                       [pageSize]="pageSize"
+                       [pageSizeOptions]="[6, 8, 12]"
+                       (page)="onPage($event)">
+        </mat-paginator>
+      </div>
     </mat-card>
 
     <p class="error" *ngIf="error">{{error}}</p>
@@ -317,6 +318,7 @@ import {
     .mobile-meta { margin-top: .6rem; color: #60766c; }
     .mobile-detail { margin-top: .75rem; }
     .blank { padding: 1rem; color: #587067; }
+    .paginator-wrap { flex: 0 0 auto; }
     mat-paginator { border: 1px solid #dde7e1; border-radius: 12px; background: #fbfdfc; }
     .error { color: #b42318; margin-top: .75rem; }
     @media (max-width: 900px) {
@@ -490,6 +492,10 @@ export class AdminUsersComponent {
   onPage(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
+  }
+
+  onQueryChange(): void {
+    this.pageIndex = 0;
   }
 
   pageLabel(): string {

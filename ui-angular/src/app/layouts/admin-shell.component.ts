@@ -23,7 +23,7 @@ import {logout} from '../state/auth/auth.actions';
       <nav class="desktop-nav">
         <a mat-button routerLink="/admin/dashboard" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: true}">Dashboard</a>
         <a mat-button routerLink="/admin/products" routerLinkActive="active-link">Products</a>
-        <a mat-button routerLink="/admin/upload" routerLinkActive="active-link">Upload</a>
+        <a mat-button routerLink="/admin/upload" routerLinkActive="active-link">Maintenance</a>
         <a mat-button routerLink="/admin/inventory" routerLinkActive="active-link">Inventory</a>
         <a mat-button routerLink="/admin/users" routerLinkActive="active-link">Users</a>
         <a mat-button routerLink="/admin/orders" routerLinkActive="active-link">Orders</a>
@@ -36,7 +36,7 @@ import {logout} from '../state/auth/auth.actions';
     <aside class="mobile-drawer" [class.open]="menuOpen">
       <a routerLink="/admin/dashboard" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{exact: true}" (click)="closeMenu()">Dashboard</a>
       <a routerLink="/admin/products" routerLinkActive="drawer-link-active" (click)="closeMenu()">Products</a>
-      <a routerLink="/admin/upload" routerLinkActive="drawer-link-active" (click)="closeMenu()">Upload</a>
+      <a routerLink="/admin/upload" routerLinkActive="drawer-link-active" (click)="closeMenu()">Maintenance</a>
       <a routerLink="/admin/inventory" routerLinkActive="drawer-link-active" (click)="closeMenu()">Inventory</a>
       <a routerLink="/admin/users" routerLinkActive="drawer-link-active" (click)="closeMenu()">Users</a>
       <a routerLink="/admin/orders" routerLinkActive="drawer-link-active" (click)="closeMenu()">Orders</a>
