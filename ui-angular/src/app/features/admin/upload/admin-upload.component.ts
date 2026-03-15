@@ -16,7 +16,7 @@ import {environment} from '../../../../environments/environment';
     <div class="grid">
       <mat-card class="tool-card">
         <h4>Backup</h4>
-        <p>Download full app-data backup as `backup.zip`.</p>
+        <p>Download full app-data backup as backup.zip.</p>
         <button mat-raised-button color="primary" (click)="downloadBackup()" [disabled]="busy === 'backup'">
           {{busy === 'backup' ? 'Preparing...' : 'Download backup.zip'}}
         </button>

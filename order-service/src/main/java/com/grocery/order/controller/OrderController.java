@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/orders")
@@ -69,19 +67,17 @@ public class OrderController {
         if (userEmail == null || userEmail.isBlank()) {
             throw new DomainException("UNAUTHORIZED", "Missing authenticated user");
         }
+        Map<String, String> phonesByEmail = new java.util.HashMap<>();
+        phonesByEmail.put(normalizeEmail(userEmail), safePhone(userEmail));
         return orderRepository.findByUserEmailOrderByIdDesc(userEmail).stream()
-                .map(order -> toResponseWithPhoneFallback(order, Map.of(userEmail, safePhone(userEmail))))
+                .map(order -> toResponseWithPhoneFallback(order, phonesByEmail))
                 .toList();
     }
 
     @GetMapping("/admin/all")
     public List<OrderResponse> allOrders() {
         var orders = orderRepository.findAll();
-        Map<String, String> phonesByEmail = orders.stream()
-                .map(order -> order.getUserEmail() == null ? "" : order.getUserEmail().trim().toLowerCase())
-                .filter(email -> !email.isBlank())
-                .distinct()
-                .collect(Collectors.toMap(Function.identity(), this::safePhone));
+        Map<String, String> phonesByEmail = collectPhonesByEmail(orders);
         return orders.stream()
                 .map(order -> toResponseWithPhoneFallback(order, phonesByEmail))
                 .toList();
@@ -90,11 +86,7 @@ public class OrderController {
     @GetMapping("/active")
     public List<OrderResponse> listActive() {
         var orders = orderAdminService.listActive();
-        Map<String, String> phonesByEmail = orders.stream()
-                .map(order -> order.getUserEmail() == null ? "" : order.getUserEmail().trim().toLowerCase())
-                .filter(email -> !email.isBlank())
-                .distinct()
-                .collect(Collectors.toMap(Function.identity(), this::safePhone));
+        Map<String, String> phonesByEmail = collectPhonesByEmail(orders);
         return orders.stream()
                 .map(order -> toResponseWithPhoneFallback(order, phonesByEmail))
                 .toList();
@@ -141,5 +133,15 @@ public class OrderController {
 
     private String normalizeEmail(String email) {
         return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private Map<String, String> collectPhonesByEmail(List<com.grocery.order.domain.OrderEntity> orders) {
+        Map<String, String> phonesByEmail = new java.util.HashMap<>();
+        orders.stream()
+                .map(order -> normalizeEmail(order.getUserEmail()))
+                .filter(email -> !email.isBlank())
+                .distinct()
+                .forEach(email -> phonesByEmail.put(email, safePhone(email)));
+        return phonesByEmail;
     }
 }

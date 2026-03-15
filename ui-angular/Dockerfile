@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build -- --configuration production
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist/grocery-ui/browser /usr/share/nginx/html
