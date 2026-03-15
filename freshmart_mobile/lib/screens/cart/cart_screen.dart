@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/catalog_provider.dart';
 import '../checkout/checkout_screen.dart';
@@ -32,7 +33,15 @@ class _CartScreenState extends State<CartScreen> {
         final subtotal = cart.subtotal(productsBySku);
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Cart')),
+          appBar: AppBar(
+            title: const Text('Cart'),
+            actions: [
+              IconButton(
+                onPressed: () => context.read<AuthProvider>().logout(),
+                icon: const Icon(Icons.logout),
+              ),
+            ],
+          ),
           body: cart.loading
               ? const Center(child: CircularProgressIndicator())
               : Column(

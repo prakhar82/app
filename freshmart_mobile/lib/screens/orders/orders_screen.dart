@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import 'order_detail_screen.dart';
 
@@ -25,7 +26,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Consumer<OrderProvider>(
       builder: (context, orders, _) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Orders')),
+          appBar: AppBar(
+            title: const Text('Orders'),
+            actions: [
+              IconButton(
+                onPressed: () => context.read<AuthProvider>().logout(),
+                icon: const Icon(Icons.logout),
+              ),
+            ],
+          ),
           body: RefreshIndicator(
             onRefresh: orders.loadOrders,
             child: orders.loading

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/catalog_provider.dart';
 import 'product_detail_screen.dart';
 
@@ -43,7 +44,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
         }).toList();
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Product catalog')),
+          appBar: AppBar(
+            title: const Text('Product catalog'),
+            actions: [
+              IconButton(
+                onPressed: () => context.read<AuthProvider>().logout(),
+                icon: const Icon(Icons.logout),
+              ),
+            ],
+          ),
           body: RefreshIndicator(
             onRefresh: catalog.loadProducts,
             child: ListView(
