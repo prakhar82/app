@@ -141,7 +141,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   Future<void> _changeOrderStatus(String orderRef, String currentStatus) async {
-    String status = currentStatus;
+    String status = _normalizeStatus(currentStatus);
     _rejectionController.clear();
     final confirmed = await showDialog<bool>(
           context: context,
@@ -194,6 +194,24 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order update failed: $error')));
     }
+  }
+
+  String _normalizeStatus(String status) {
+    const allowed = {'PAYMENT_PENDING', 'CONFIRMED', 'COD_PENDING', 'REJECTED'};
+    final normalized = status.trim().toUpperCase();
+    if (allowed.contains(normalized)) {
+      return normalized;
+    }
+    if (normalized == 'PENDING_PAYMENT') {
+      return 'PAYMENT_PENDING';
+    }
+    if (normalized == 'CASH_ON_DELIVERY') {
+      return 'COD_PENDING';
+    }
+    if (normalized == 'DELIVERED') {
+      return 'CONFIRMED';
+    }
+    return 'PAYMENT_PENDING';
   }
 
   Widget _buildOrders(AdminProvider admin) {
