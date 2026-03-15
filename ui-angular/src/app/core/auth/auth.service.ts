@@ -6,6 +6,7 @@ import {Observable} from 'rxjs';
 export interface AuthResponse { accessToken: string; tokenType: string; expiresInSeconds: number; role: string; email: string; }
 export interface RegisterRequest { email: string; name?: string; phone?: string; password: string; }
 export interface VerifyRequest { email: string; code: string; }
+export interface ResetPasswordRequest { email: string; code: string; newPassword: string; }
 
 @Injectable({providedIn: 'root'})
 export class AuthService {
@@ -29,5 +30,13 @@ export class AuthService {
 
   resendCode(email: string): Observable<void> {
     return this.http.post<void>(`${environment.apiBaseUrl}/identity/auth/resend-code`, {email}, {withCredentials: true});
+  }
+
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/identity/auth/forgot-password`, {email}, {withCredentials: true});
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/identity/auth/reset-password`, request, {withCredentials: true});
   }
 }

@@ -48,6 +48,12 @@ app-root {
   overflow: hidden;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .mat-mdc-card {
   box-shadow: 0 12px 30px rgba(20, 73, 62, 0.08) !important;
 }

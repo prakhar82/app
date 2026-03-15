@@ -21,7 +21,7 @@ import {Address} from '../../../core/api/address-api.service';
     <section class="profile-shell">
       <header class="profile-header">
         <h2>My Profile</h2>
-        <p>Manage your personal details, saved payment account, and delivery addresses.</p>
+        <p>Manage your contact details, delivery addresses, and password.</p>
       </header>
     <mat-tab-group class="profile-tabs">
       <mat-tab label="Profile">
@@ -45,30 +45,22 @@ import {Address} from '../../../core/api/address-api.service';
         </mat-card>
       </mat-tab>
 
-      <mat-tab label="Payment Account">
-        <mat-card class="card">
-          <form [formGroup]="paymentForm" (ngSubmit)="savePaymentAccount()">
-            <mat-form-field appearance="outline" class="full"><input matInput placeholder="Account holder name" formControlName="accountHolderName" /></mat-form-field>
-            <mat-form-field appearance="outline" class="full"><input matInput placeholder="IBAN" formControlName="iban" /></mat-form-field>
-            <mat-form-field appearance="outline" class="full"><input matInput placeholder="Bank name" formControlName="bankName" /></mat-form-field>
-            <button mat-raised-button color="primary" type="submit" [disabled]="savingPayment">
-              {{ savingPayment ? 'Saving...' : 'Save Payment Account' }}
-            </button>
-          </form>
-        </mat-card>
-      </mat-tab>
-
       <mat-tab label="Addresses">
-        <mat-card class="card">
-          <h3>Add Address</h3>
-          <form [formGroup]="addressForm" (ngSubmit)="addAddress()">
+        <mat-card class="card address-form-card">
+          <h3>{{editingAddressId ? 'Edit Address' : 'Add Address'}}</h3>
+          <form [formGroup]="addressForm" (ngSubmit)="saveAddress()">
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="Label" formControlName="label" /></mat-form-field>
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="Line 1" formControlName="line1" /></mat-form-field>
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="Line 2" formControlName="line2" /></mat-form-field>
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="City" formControlName="city" /></mat-form-field>
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="Postcode (e.g. 5611AB)" formControlName="postcode" /></mat-form-field>
             <mat-form-field appearance="outline" class="full"><input matInput placeholder="Country" formControlName="country" /></mat-form-field>
-            <button mat-raised-button color="primary" [disabled]="addressForm.invalid">Add Address</button>
+            <div class="actions">
+              <button mat-raised-button color="primary" [disabled]="addressForm.invalid">
+                {{editingAddressId ? 'Update Address' : 'Add Address'}}
+              </button>
+              <button mat-button type="button" *ngIf="editingAddressId" (click)="cancelAddressEdit()">Cancel</button>
+            </div>
           </form>
         </mat-card>
 
@@ -81,9 +73,23 @@ import {Address} from '../../../core/api/address-api.service';
             </div>
             <div class="actions">
               <button mat-stroked-button (click)="setDefault(a)">Set default</button>
+              <button mat-stroked-button (click)="editAddress(a)">Edit</button>
               <button mat-stroked-button color="warn" (click)="remove(a)">Delete</button>
             </div>
           </div>
+        </mat-card>
+      </mat-tab>
+
+      <mat-tab label="Change Password">
+        <mat-card class="card">
+          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+            <mat-form-field appearance="outline" class="full"><input matInput type="password" placeholder="Current password" formControlName="currentPassword" /></mat-form-field>
+            <mat-form-field appearance="outline" class="full"><input matInput type="password" placeholder="New password" formControlName="newPassword" /></mat-form-field>
+            <mat-form-field appearance="outline" class="full"><input matInput type="password" placeholder="Confirm new password" formControlName="confirmPassword" /></mat-form-field>
+            <button mat-raised-button color="primary" type="submit" [disabled]="savingPassword">
+              {{ savingPassword ? 'Updating...' : 'Change Password' }}
+            </button>
+          </form>
         </mat-card>
       </mat-tab>
     </mat-tab-group>
@@ -98,6 +104,7 @@ import {Address} from '../../../core/api/address-api.service';
     .profile-header p { margin: .2rem 0 0; color: #5f6f67; }
     .profile-tabs { background: #fff; border-radius: 14px; }
     .card { margin-top: .75rem; border-radius: 12px; padding: 1rem; background: #fcfffd; }
+    .address-form-card { position: sticky; top: .25rem; z-index: 1; }
     .full { width: 100%; }
     .row { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
     .actions { display: flex; gap: .5rem; }
@@ -115,7 +122,8 @@ export class ProfileComponent {
   success = '';
   error = '';
   savingProfile = false;
-  savingPayment = false;
+  savingPassword = false;
+  editingAddressId: number | null = null;
 
   profileForm = this.fb.group({
     email: [{value: '', disabled: true}],
@@ -123,12 +131,6 @@ export class ProfileComponent {
     phone: [''],
     preferredLanguage: [''],
     defaultAddressId: [null as number | null]
-  });
-
-  paymentForm = this.fb.group({
-    accountHolderName: [''],
-    iban: [''],
-    bankName: ['']
   });
 
   addressForm = this.fb.group({
@@ -139,6 +141,12 @@ export class ProfileComponent {
     postcode: ['', [Validators.required, Validators.pattern(/^[0-9]{4}\s?[A-Za-z]{2}$/)]],
     country: ['NL', [Validators.required]],
     isDefault: [false]
+  });
+
+  passwordForm = this.fb.group({
+    currentPassword: ['', [Validators.required]],
+    newPassword: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', [Validators.required]]
   });
 
   constructor() {
@@ -157,11 +165,6 @@ export class ProfileComponent {
           phone: me.phone || '',
           preferredLanguage: me.preferredLanguage || '',
           defaultAddressId: me.defaultAddressId ?? null
-        });
-        this.paymentForm.patchValue({
-          accountHolderName: me.accountHolderName || '',
-          iban: me.iban || '',
-          bankName: me.bankName || ''
         });
       },
       error: (err) => this.error = err?.error?.message || 'Failed to load profile'
@@ -197,39 +200,21 @@ export class ProfileComponent {
     });
   }
 
-  savePaymentAccount(): void {
-    this.error = '';
-    this.success = '';
-    this.savingPayment = true;
-    const value = this.paymentForm.getRawValue();
-    this.api.update({
-      accountHolderName: (value.accountHolderName || '').trim() || undefined,
-      iban: (value.iban || '').trim() || undefined,
-      bankName: (value.bankName || '').trim() || undefined
-    }).subscribe({
-      next: () => {
-        this.savingPayment = false;
-        this.success = 'Payment account saved';
-        this.reload();
-      },
-      error: (err) => {
-        this.savingPayment = false;
-        this.error = err?.error?.message || 'Failed to save payment account';
-      }
-    });
-  }
-
-  addAddress(): void {
+  saveAddress(): void {
     if (this.addressForm.invalid) {
       return;
     }
-    this.api.addAddress(this.addressForm.getRawValue() as Address).subscribe({
+    const payload = this.addressForm.getRawValue() as Address;
+    const request = this.editingAddressId
+      ? this.api.updateAddress(this.editingAddressId, payload)
+      : this.api.addAddress(payload);
+    request.subscribe({
       next: () => {
-        this.success = 'Address added';
-        this.addressForm.patchValue({line1: '', line2: '', postcode: ''});
+        this.success = this.editingAddressId ? 'Address updated' : 'Address added';
+        this.cancelAddressEdit();
         this.reload();
       },
-      error: (err) => this.error = err?.error?.message || 'Failed to add address'
+      error: (err) => this.error = err?.error?.message || 'Failed to save address'
     });
   }
 
@@ -257,5 +242,56 @@ export class ProfileComponent {
 
   addressLabel(a: Address): string {
     return `${a.label || 'Address'} - ${a.line1}, ${a.postcode}`;
+  }
+
+  editAddress(address: Address): void {
+    this.editingAddressId = address.id || null;
+    this.addressForm.patchValue({
+      label: address.label || 'Home',
+      line1: address.line1,
+      line2: address.line2 || '',
+      city: address.city,
+      postcode: address.postcode,
+      country: address.country,
+      isDefault: !!address.isDefault
+    });
+  }
+
+  cancelAddressEdit(): void {
+    this.editingAddressId = null;
+    this.addressForm.patchValue({
+      label: 'Home',
+      line1: '',
+      line2: '',
+      city: 'Eindhoven',
+      postcode: '',
+      country: 'NL',
+      isDefault: false
+    });
+  }
+
+  changePassword(): void {
+    if (this.passwordForm.invalid) {
+      return;
+    }
+    const {currentPassword, newPassword, confirmPassword} = this.passwordForm.getRawValue();
+    if (newPassword !== confirmPassword) {
+      this.error = 'New passwords do not match';
+      return;
+    }
+    this.error = '';
+    this.success = '';
+    this.savingPassword = true;
+    this.api.changePassword({currentPassword: currentPassword!, newPassword: newPassword!}).subscribe({
+      next: () => {
+        this.savingPassword = false;
+        this.success = 'Password updated';
+        this.passwordForm.reset();
+      },
+      error: (err) => {
+        this.savingPassword = false;
+        this.error = err?.error?.message || 'Failed to change password';
+      }
+    });
   }
 }

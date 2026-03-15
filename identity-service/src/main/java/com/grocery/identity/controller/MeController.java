@@ -3,10 +3,12 @@ package com.grocery.identity.controller;
 import com.grocery.common.api.DomainException;
 import com.grocery.identity.dto.AddressResponse;
 import com.grocery.identity.dto.AddressUpsertRequest;
+import com.grocery.identity.dto.ChangePasswordRequest;
 import com.grocery.identity.dto.MeResponse;
 import com.grocery.identity.dto.UpdateMeRequest;
 import com.grocery.identity.service.AddressService;
 import com.grocery.identity.service.MeService;
+import com.grocery.identity.service.PasswordService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +19,12 @@ import java.util.List;
 public class MeController {
     private final MeService meService;
     private final AddressService addressService;
+    private final PasswordService passwordService;
 
-    public MeController(MeService meService, AddressService addressService) {
+    public MeController(MeService meService, AddressService addressService, PasswordService passwordService) {
         this.meService = meService;
         this.addressService = addressService;
+        this.passwordService = passwordService;
     }
 
     @GetMapping("/me")
@@ -65,6 +69,13 @@ public class MeController {
     public void setDefaultAddress(@RequestHeader(name = "X-User-Email", required = false) String userEmail,
                                   @PathVariable("id") Long id) {
         addressService.setDefault(requireUser(userEmail), id);
+    }
+
+    @PostMapping("/me/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@RequestHeader(name = "X-User-Email", required = false) String userEmail,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        passwordService.changePassword(requireUser(userEmail), request);
     }
 
     private String requireUser(String userEmail) {

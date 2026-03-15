@@ -17,7 +17,7 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
 
     <mat-card class="section-card">
       <div class="toolbar">
-        <input class="search" type="text" [(ngModel)]="query" placeholder="Filter by SKU or product name" />
+        <input class="search" type="text" [(ngModel)]="query" (ngModelChange)="onQueryChange()" placeholder="Filter by SKU or product name" />
       </div>
 
       <div class="page-note" *ngIf="filteredItems().length > 0">{{pageLabel()}}</div>
@@ -149,13 +149,14 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
         <p class="blank" *ngIf="filteredItems().length === 0">No inventory items found.</p>
       </div>
 
-      <mat-paginator *ngIf="filteredItems().length > 0"
-                     [length]="filteredItems().length"
-                     [pageIndex]="pageIndex"
-                     [pageSize]="pageSize"
-                     [pageSizeOptions]="[6, 8, 12]"
-                     (page)="onPage($event)">
-      </mat-paginator>
+      <div class="paginator-wrap" *ngIf="filteredItems().length > 0">
+        <mat-paginator [length]="filteredItems().length"
+                       [pageIndex]="pageIndex"
+                       [pageSize]="pageSize"
+                       [pageSizeOptions]="[6, 8, 12]"
+                       (page)="onPage($event)">
+        </mat-paginator>
+      </div>
     </mat-card>
 
     <p class="error" *ngIf="error">{{error}}</p>
@@ -167,7 +168,7 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
       display: flex;
       flex-direction: column;
       gap: .8rem;
-      height: calc(100dvh - 220px);
+      height: 100%;
       min-height: 0;
       overflow: hidden;
       border-radius: 14px;
@@ -175,7 +176,15 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
     .toolbar { margin: .15rem 0 0; }
     .search { width: 100%; max-width: 420px; padding: .5rem .6rem; border: 1px solid #cfdad4; border-radius: 8px; box-sizing: border-box; }
     .page-note { margin: -.1rem 0 0; color: #587067; font-size: .92rem; }
-    .scroll-wrap { flex: 1; min-height: 0; overflow: auto; border: 1px solid #e1e9e4; border-radius: 12px; background: #fff; }
+    .scroll-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid #e1e9e4;
+      border-radius: 12px;
+      background: #fff;
+      container-type: inline-size;
+    }
     .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .table th, .table td { border-bottom: 1px solid #dbe5df; padding: .68rem; text-align: left; vertical-align: top; }
     .table thead th { position: sticky; top: 0; z-index: 2; background: #f4f9f6; }
@@ -207,14 +216,24 @@ import {InventoryApiService, InventoryItem} from '../../../core/api/inventory-ap
     .mobile-meta { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .65rem; color: #60766c; font-size: .9rem; }
     .mobile-detail { margin-top: .75rem; }
     .blank { padding: 1rem; color: #587067; }
-    mat-paginator { border: 1px solid #dde7e1; border-radius: 12px; background: #fbfdfc; }
-    .error { color: #b42318; margin-top: .75rem; }
-    @media (max-width: 900px) {
-      .section-card { height: calc(100dvh - 180px); }
+    .paginator-wrap {
+      flex: 0 0 auto;
+      margin-top: .1rem;
+      border: 1px solid #dde7e1;
+      border-radius: 12px;
+      background: #fbfdfc;
+      overflow: hidden;
+    }
+    mat-paginator { background: transparent; }
+    @container (max-width: 980px) {
       .desktop-table { display: none; }
       .mobile-list { display: grid; }
+    }
+    .error { color: #b42318; margin-top: .75rem; }
+    @media (max-width: 900px) {
       .detail-grid { grid-template-columns: 1fr; }
       .detail-actions button { width: 100%; }
+      .search { max-width: none; }
     }
   `]
 })
@@ -336,6 +355,13 @@ export class AdminInventoryComponent {
   onPage(event: PageEvent): void {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
+  }
+
+  onQueryChange(): void {
+    this.pageIndex = 0;
+    if (this.selectedSku && !this.filteredItems().some(item => item.sku === this.selectedSku)) {
+      this.cancelEdit();
+    }
   }
 
   pageLabel(): string {

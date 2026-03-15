@@ -26,6 +26,7 @@ public class JwtAuthGlobalFilter implements org.springframework.cloud.gateway.fi
             "/api/orders",
             "/api/inventory",
             "/api/payments",
+            "/api/catalog/catalog/me",
             "/api/identity/addresses",
             "/api/identity/me",
             "/api/identity/admin");

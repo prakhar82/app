@@ -8,6 +8,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {FormsModule} from '@angular/forms';
 import {Product} from '../../../core/api/catalog-api.service';
+import {StarRatingComponent} from './star-rating.component';
 
 @Component({
   selector: 'app-product-card',
@@ -20,13 +21,18 @@ import {Product} from '../../../core/api/catalog-api.service';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
-    FormsModule
+    FormsModule,
+    StarRatingComponent
   ],
   template: `
     <mat-card class="item">
       <img [src]="product.imageUrl || 'https://placehold.co/360x220'" [alt]="product.name" />
       <h4>{{product.name}}</h4>
       <p class="meta">{{product.category}} / {{product.subcategory}}</p>
+      <div class="rating-row">
+        <app-star-rating [rating]="product.averageRating || 0" [showValue]="true" size="1rem" />
+        <span class="review-count">({{product.reviewCount || 0}})</span>
+      </div>
       <p class="price">{{product.price | currency:'EUR':'symbol':'1.2-2'}} / {{product.unit}}</p>
       <p class="stock" [class.out]="availableQty <= 0">
         {{ availableQty > 0 ? ('Available: ' + availableQty) : 'Out of stock' }}
@@ -59,6 +65,8 @@ import {Product} from '../../../core/api/catalog-api.service';
     .item img { width: 100%; height: 150px; object-fit: cover; border-radius: 10px; }
     h4 { margin: .2rem 0 0; }
     .meta { margin: 0; color: #5a7068; font-size: .88rem; }
+    .rating-row { display: flex; align-items: center; gap: .35rem; min-height: 1.3rem; }
+    .review-count { color: #5a7068; font-size: .84rem; }
     .price { margin: 0; font-weight: 700; color: #203f35; }
     .stock { margin: 0; font-size: .88rem; }
     .stock.out { color: #b42318; font-weight: 600; }

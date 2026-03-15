@@ -58,8 +58,15 @@ import {logout} from '../state/auth/auth.actions';
     .desktop-nav a, .desktop-nav button { color: #fff; }
     .active-link { background: rgba(255,255,255,.16); border-radius: 8px; font-weight: 700; }
     .mobile-only { display: none; }
-    .shell-body { flex: 1; min-height: 0; padding: 1rem; overflow: hidden; }
-    .content { height: 100%; border-radius: 18px; padding: 1rem; min-width: 0; overflow: auto; overscroll-behavior: contain; }
+    .shell-body { flex: 1; min-height: 0; padding: .9rem; overflow: hidden; }
+    .content {
+      height: 100%;
+      border-radius: 18px;
+      padding: clamp(.7rem, 1.4vw, 1rem);
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
     .mobile-overlay { position: fixed; inset: 0; background: rgba(6, 21, 17, .45); z-index: 35; }
     .mobile-drawer {
       position: fixed;
@@ -88,8 +95,7 @@ import {logout} from '../state/auth/auth.actions';
     @media (max-width: 980px) {
       .desktop-nav { display: none; }
       .mobile-only { display: inline-flex; }
-      .shell-body { padding: .75rem; }
-      .content { padding: .85rem; }
+      .shell-body { padding: .6rem; }
     }
   `]
 })

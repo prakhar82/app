@@ -56,4 +56,8 @@ export class MeApiService {
   setDefaultAddress(id: number): Observable<void> {
     return this.http.post<void>(`${environment.apiBaseUrl}/identity/me/addresses/${id}/default`, {});
   }
+
+  changePassword(payload: {currentPassword: string; newPassword: string}): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/identity/me/change-password`, payload);
+  }
 }

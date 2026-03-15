@@ -1,9 +1,11 @@
 package com.grocery.identity.controller;
 
 import com.grocery.identity.dto.AuthResponse;
+import com.grocery.identity.dto.ForgotPasswordRequest;
 import com.grocery.identity.dto.LoginRequest;
 import com.grocery.identity.dto.RegisterRequest;
 import com.grocery.identity.dto.ResendCodeRequest;
+import com.grocery.identity.dto.ResetPasswordRequest;
 import com.grocery.identity.dto.VerifyRequest;
 import com.grocery.identity.service.AuthService;
 import jakarta.validation.Valid;
@@ -41,6 +43,18 @@ public class AuthController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void resend(@Valid @RequestBody ResendCodeRequest request) {
         authService.resend(request);
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
     }
 
     @GetMapping("/health")

@@ -1,6 +1,6 @@
 import {inject, Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
-import {map, Observable, shareReplay} from 'rxjs';
+import {map, Observable} from 'rxjs';
 import {environment} from '../../../environments/environment';
 
 export interface Product {
@@ -16,6 +16,17 @@ export interface Product {
   imageUrl?: string;
   description?: string;
   availableQty?: number;
+  averageRating?: number;
+  reviewCount?: number;
+}
+
+export interface ProductReview {
+  id: number;
+  userDisplayName: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProductCreateRequest {
@@ -79,45 +90,43 @@ export interface BulkUploadResult {
 @Injectable({providedIn: 'root'})
 export class CatalogApiService {
   private readonly http = inject(HttpClient);
-  private readonly productCatalog$ = this.listProducts().pipe(
-    map(products => {
-      const categoriesByName = new Map<string, CatalogCategoryOption>();
-      const subcategoriesByKey = new Map<string, CatalogSubcategoryOption>();
-
-      for (const p of products) {
-        const categoryName = (p.category || 'Unknown').trim();
-        const subcategoryName = (p.subcategory || 'General').trim();
-        const categoryId = stableNumericId(categoryName);
-        const subcategoryKey = `${categoryName}::${subcategoryName}`;
-
-        if (!categoriesByName.has(categoryName)) {
-          categoriesByName.set(categoryName, {id: categoryId, name: categoryName});
-        }
-        if (!subcategoriesByKey.has(subcategoryKey)) {
-          subcategoriesByKey.set(subcategoryKey, {
-            id: stableNumericId(subcategoryKey),
-            name: subcategoryName,
-            categoryId,
-            categoryName
-          });
-        }
-      }
-
-      return {
-        products,
-        categories: [...categoriesByName.values()].sort((a, b) => a.name.localeCompare(b.name)),
-        subcategories: [...subcategoriesByKey.values()].sort((a, b) => a.name.localeCompare(b.name))
-      };
-    }),
-    shareReplay(1)
-  );
 
   listProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(`${environment.apiBaseUrl}/catalog/catalog/products`);
   }
 
   getCatalogMetadata(): Observable<{products: Product[]; categories: CatalogCategoryOption[]; subcategories: CatalogSubcategoryOption[]}> {
-    return this.productCatalog$;
+    return this.listProducts().pipe(
+      map(products => {
+        const categoriesByName = new Map<string, CatalogCategoryOption>();
+        const subcategoriesByKey = new Map<string, CatalogSubcategoryOption>();
+
+        for (const p of products) {
+          const categoryName = (p.category || 'Unknown').trim();
+          const subcategoryName = (p.subcategory || 'General').trim();
+          const categoryId = stableNumericId(categoryName);
+          const subcategoryKey = `${categoryName}::${subcategoryName}`;
+
+          if (!categoriesByName.has(categoryName)) {
+            categoriesByName.set(categoryName, {id: categoryId, name: categoryName});
+          }
+          if (!subcategoriesByKey.has(subcategoryKey)) {
+            subcategoriesByKey.set(subcategoryKey, {
+              id: stableNumericId(subcategoryKey),
+              name: subcategoryName,
+              categoryId,
+              categoryName
+            });
+          }
+        }
+
+        return {
+          products,
+          categories: [...categoriesByName.values()].sort((a, b) => a.name.localeCompare(b.name)),
+          subcategories: [...subcategoriesByKey.values()].sort((a, b) => a.name.localeCompare(b.name))
+        };
+      })
+    );
   }
 
   getProducts(params: ProductQueryParams): Observable<ProductPage> {
@@ -199,6 +208,20 @@ export class CatalogApiService {
     const form = new FormData();
     form.append('file', file);
     return this.http.post<BulkUploadResult>(`${environment.apiBaseUrl}/catalog/catalog/admin/upload`, form);
+  }
+
+  listReviews(productId: number): Observable<ProductReview[]> {
+    return this.http.get<ProductReview[]>(`${environment.apiBaseUrl}/catalog/catalog/products/${productId}/reviews`);
+  }
+
+  getMyReview(productId: number): Observable<ProductReview | null> {
+    return this.http.get<ProductReview>(`${environment.apiBaseUrl}/catalog/catalog/me/reviews/${productId}`).pipe(
+      map(review => review ?? null)
+    );
+  }
+
+  saveMyReview(productId: number, request: {rating: number; comment?: string}): Observable<ProductReview> {
+    return this.http.post<ProductReview>(`${environment.apiBaseUrl}/catalog/catalog/me/reviews/${productId}`, request);
   }
 }
 

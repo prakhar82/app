@@ -4,9 +4,11 @@ import com.grocery.common.api.DomainException;
 import com.grocery.common.security.JwtService;
 import com.grocery.identity.domain.UserAccount;
 import com.grocery.identity.dto.AuthResponse;
+import com.grocery.identity.dto.ForgotPasswordRequest;
 import com.grocery.identity.dto.LoginRequest;
 import com.grocery.identity.dto.RegisterRequest;
 import com.grocery.identity.dto.ResendCodeRequest;
+import com.grocery.identity.dto.ResetPasswordRequest;
 import com.grocery.identity.dto.VerifyRequest;
 import com.grocery.identity.repo.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -135,6 +137,46 @@ public class AuthService {
         resendVerificationForPendingUser(user);
     }
 
+    public void forgotPassword(ForgotPasswordRequest request) {
+        UserAccount user = userRepository.findByEmailIgnoreCase(normalizeEmail(request.email())).orElse(null);
+        if (user == null || !"ACTIVE".equalsIgnoreCase(user.getStatus()) || "GOOGLE_AUTH_ONLY".equals(user.getPasswordHash())) {
+            return;
+        }
+        if (user.getPasswordResetLastSentAt() != null
+                && user.getPasswordResetLastSentAt().isAfter(Instant.now().minus(60, ChronoUnit.SECONDS))) {
+            throw new DomainException("RATE_LIMITED", "Please wait before requesting another reset code");
+        }
+        String rawCode = String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
+        user.setPasswordResetCodeHash(passwordEncoder.encode(rawCode));
+        user.setPasswordResetExpiresAt(Instant.now().plus(verificationExpiryMinutes, ChronoUnit.MINUTES));
+        user.setPasswordResetAttempts(0);
+        user.setPasswordResetLastSentAt(Instant.now());
+        userRepository.save(user);
+        verificationEmailService.sendPasswordResetCode(user.getEmail(), rawCode);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        UserAccount user = userRepository.findByEmailIgnoreCase(normalizeEmail(request.email()))
+                .orElseThrow(() -> new DomainException("NOT_FOUND", "User not found"));
+        if (user.getPasswordResetCodeHash() == null || user.getPasswordResetExpiresAt() == null) {
+            throw new DomainException("RESET_NOT_REQUESTED", "Password reset was not requested");
+        }
+        if (Instant.now().isAfter(user.getPasswordResetExpiresAt())) {
+            throw new DomainException("CODE_EXPIRED", "Password reset code expired");
+        }
+        if (user.getPasswordResetAttempts() >= maxVerificationAttempts) {
+            throw new DomainException("MAX_ATTEMPTS_REACHED", "Too many attempts. Request a new reset code");
+        }
+        if (!passwordEncoder.matches(request.code(), user.getPasswordResetCodeHash())) {
+            user.setPasswordResetAttempts(user.getPasswordResetAttempts() + 1);
+            userRepository.save(user);
+            throw new DomainException("INVALID_CODE", "Invalid reset code");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        clearPasswordReset(user);
+        userRepository.save(user);
+    }
+
     public AuthResponse issue(UserAccount user) {
         String token = jwtService.issueAccessToken(
                 user.getEmail(),
@@ -171,6 +213,12 @@ public class AuthService {
         }
         issueAndSendVerificationCode(user);
         userRepository.save(user);
+    }
+
+    private void clearPasswordReset(UserAccount user) {
+        user.setPasswordResetCodeHash(null);
+        user.setPasswordResetExpiresAt(null);
+        user.setPasswordResetAttempts(0);
     }
 
     private String normalizeEmail(String email) {

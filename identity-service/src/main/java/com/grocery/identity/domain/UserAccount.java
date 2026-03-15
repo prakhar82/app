@@ -40,6 +40,14 @@ public class UserAccount {
     private int verificationAttempts;
     @Column
     private Instant lastCodeSentAt;
+    @Column
+    private String passwordResetCodeHash;
+    @Column
+    private Instant passwordResetExpiresAt;
+    @Column(nullable = false)
+    private int passwordResetAttempts;
+    @Column
+    private Instant passwordResetLastSentAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_address_id")
     private UserAddress defaultAddress;
@@ -94,6 +102,14 @@ public class UserAccount {
     public void setVerificationAttempts(int verificationAttempts) { this.verificationAttempts = verificationAttempts; }
     public Instant getLastCodeSentAt() { return lastCodeSentAt; }
     public void setLastCodeSentAt(Instant lastCodeSentAt) { this.lastCodeSentAt = lastCodeSentAt; }
+    public String getPasswordResetCodeHash() { return passwordResetCodeHash; }
+    public void setPasswordResetCodeHash(String passwordResetCodeHash) { this.passwordResetCodeHash = passwordResetCodeHash; }
+    public Instant getPasswordResetExpiresAt() { return passwordResetExpiresAt; }
+    public void setPasswordResetExpiresAt(Instant passwordResetExpiresAt) { this.passwordResetExpiresAt = passwordResetExpiresAt; }
+    public int getPasswordResetAttempts() { return passwordResetAttempts; }
+    public void setPasswordResetAttempts(int passwordResetAttempts) { this.passwordResetAttempts = passwordResetAttempts; }
+    public Instant getPasswordResetLastSentAt() { return passwordResetLastSentAt; }
+    public void setPasswordResetLastSentAt(Instant passwordResetLastSentAt) { this.passwordResetLastSentAt = passwordResetLastSentAt; }
     public UserAddress getDefaultAddress() { return defaultAddress; }
     public void setDefaultAddress(UserAddress defaultAddress) { this.defaultAddress = defaultAddress; }
     public Instant getCreatedAt() { return createdAt; }

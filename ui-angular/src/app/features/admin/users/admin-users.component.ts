@@ -270,7 +270,7 @@ import {
       display: flex;
       flex-direction: column;
       gap: .8rem;
-      height: calc(100dvh - 220px);
+      height: 100%;
       min-height: 0;
       overflow: hidden;
       border-radius: 14px;
@@ -278,7 +278,15 @@ import {
     .toolbar { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
     .search { flex: 1; min-width: 220px; max-width: 420px; padding: .5rem .6rem; border: 1px solid #cfdad4; border-radius: 8px; box-sizing: border-box; }
     .page-note { margin: -.1rem 0 0; color: #587067; font-size: .92rem; }
-    .scroll-wrap { flex: 1; min-height: 0; overflow: auto; border: 1px solid #e1e9e4; border-radius: 12px; background: #fff; }
+    .scroll-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid #e1e9e4;
+      border-radius: 12px;
+      background: #fff;
+      container-type: inline-size;
+    }
     .table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .table th, .table td { border-bottom: 1px solid #dbe5df; padding: .68rem; text-align: left; vertical-align: top; }
     .table thead th { position: sticky; top: 0; z-index: 2; background: #f4f9f6; }
@@ -318,13 +326,21 @@ import {
     .mobile-meta { margin-top: .6rem; color: #60766c; }
     .mobile-detail { margin-top: .75rem; }
     .blank { padding: 1rem; color: #587067; }
-    .paginator-wrap { flex: 0 0 auto; }
-    mat-paginator { border: 1px solid #dde7e1; border-radius: 12px; background: #fbfdfc; }
-    .error { color: #b42318; margin-top: .75rem; }
-    @media (max-width: 900px) {
-      .section-card { height: calc(100dvh - 180px); }
+    .paginator-wrap {
+      flex: 0 0 auto;
+      margin-top: .1rem;
+      border: 1px solid #dde7e1;
+      border-radius: 12px;
+      background: #fbfdfc;
+      overflow: hidden;
+    }
+    mat-paginator { background: transparent; }
+    @container (max-width: 980px) {
       .desktop-table { display: none; }
       .mobile-list { display: grid; }
+    }
+    .error { color: #b42318; margin-top: .75rem; }
+    @media (max-width: 900px) {
       .detail-grid { grid-template-columns: 1fr; }
       .detail-actions button { width: 100%; }
       .search { max-width: none; width: 100%; }
@@ -496,6 +512,9 @@ export class AdminUsersComponent {
 
   onQueryChange(): void {
     this.pageIndex = 0;
+    if (this.selectedUser && !this.filteredUsers().some(user => user.id === this.selectedUser?.id)) {
+      this.closeEdit();
+    }
   }
 
   pageLabel(): string {
