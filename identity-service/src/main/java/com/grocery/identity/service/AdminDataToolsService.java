@@ -307,7 +307,7 @@ public class AdminDataToolsService {
             case Types.NUMERIC, Types.DECIMAL -> ps.setBigDecimal(parameterIndex, asBigDecimal(value));
             case Types.TIMESTAMP -> ps.setTimestamp(parameterIndex, asTimestamp(value));
             case Types.TIMESTAMP_WITH_TIMEZONE -> ps.setObject(parameterIndex, asOffsetDateTime(value));
-            case Types.DATE -> ps.setDate(parameterIndex, Date.valueOf(LocalDate.parse(String.valueOf(value))));
+            case Types.DATE -> ps.setDate(parameterIndex, java.sql.Date.valueOf(LocalDate.parse(String.valueOf(value))));
             case Types.CHAR, Types.VARCHAR, Types.LONGVARCHAR, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR -> ps.setString(parameterIndex, String.valueOf(value));
             default -> ps.setObject(parameterIndex, value);
         }
