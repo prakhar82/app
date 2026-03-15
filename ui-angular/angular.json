@@ -20,7 +20,8 @@
           },
           "configurations": {
             "production": {
-              "optimization": true
+              "optimization": true,
+              "outputHashing": "all"
             },
             "development": {
               "optimization": false,
